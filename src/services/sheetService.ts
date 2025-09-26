@@ -111,17 +111,17 @@ function getFallbackMessages(): DailyMessage[] {
     {
       date: today,
       type: 'Add text over image',
-      title: 'Daily Inspiration',
-      message: 'Your journey begins with a single step of courage.',
+      title: 'Today\'s Courage',
+      message: 'Your journey begins with a single step of courage. Every challenge you\u2028face is an opportunity to grow and discover your inner strength.',
       mediaURL: '/2.svg',
-      cta: 'Explore More',
+      cta: 'Start Your Journey',
       link: 'https://www.FootForwardFund.org'
     },
     {
       date: '',
       type: 'Add text over image',
-      title: 'Believe in Yourself',
-      message: 'Every day brings new opportunities for growth and connection.',
+      title: 'Believe & Achieve',
+      message: 'Every day brings new opportunities for growth and connection.\u2029Trust the process and believe in your infinite potential.',
       mediaURL: '/3.svg',
       cta: 'Get Inspired',
       link: 'https://www.FootForwardFund.org'
@@ -129,10 +129,19 @@ function getFallbackMessages(): DailyMessage[] {
     {
       date: '',
       type: 'Add text over image',
-      title: 'Strength Within',
-      message: 'You have everything you need to overcome today\'s challenges.',
+      title: 'Resilience Rising',
+      message: 'You have everything you need to overcome today\'s challenges.\u2029Strength isn\u2019t found in perfection, but in the ability to keep moving forward.',
       mediaURL: '/2.svg',
-      cta: 'Find Support',
+      cta: 'Find Your Support',
+      link: 'https://www.FootForwardFund.org'
+    },
+    {
+      date: '',
+      type: 'Add text over image',
+      title: 'Hope is Here',
+      message: 'Even in the darkest moments, hope remains a constant companion.\u2029Watch how your perspective shifts when you choose to see possibilities.',
+      mediaURL: '/3.svg',
+      cta: 'Explore Hope',
       link: 'https://www.FootForwardFund.org'
     }
   ]
