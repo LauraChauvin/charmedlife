@@ -1,0 +1,3 @@
+# Redirect all routes to index.html for SPA routing
+# This ensures token-based URLs like /abc123 work correctly
+/*    /index.html   200
