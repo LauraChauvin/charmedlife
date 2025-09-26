@@ -45,18 +45,18 @@
   }
   
   .btn-primary {
-    @apply bg-brand text-white px-8 py-4 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-400 hover:shadow-lg focus:outline-none focus:ring-3 focus:ring-yellow-400/50 transform hover:scale-105 active:scale-95;
+    @apply bg-brand text-white px-8 py-4 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-400 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-yellow-400/50 transform hover:scale-105 active:scale-95;
     background: linear-gradient(135deg, #1e4395 0%, #2563eb 100%);
     box-shadow: 0 4px 15px rgba(30, 67, 149, 0.3);
   }
   
   .btn-secondary {
-    @apply bg-yellow-400 text-gray-900 px-8 py-4 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-300 hover:shadow-lg focus:outline-none focus:ring-3 focus:ring-yellow-400/50 transform hover:scale-105 active:scale-95;
+    @apply bg-yellow-400 text-gray-900 px-8 py-4 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-yellow-400/50 transform hover:scale-105 active:scale-95;
     box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
   }
   
   .btn-outline {
-    @apply border-2 border-brand text-brand bg-white px-8 py-4 rounded-xl font-medium transition-all duration-300 hover:bg-brand hover:text-white hover:shadow-lg focus:outline-none focus:ring-3 focus:ring-brand/50 transform hover:scale-105 active:scale-95;
+    @apply border-2 border-brand text-brand bg-white px-8 py-4 rounded-xl font-medium transition-all duration-300 hover:bg-brand hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/50 transform hover:scale-105 active:scale-95;
   }
   
   .card-elevated {
