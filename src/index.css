@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Glacial+Indifference:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Halimum:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,21 +11,17 @@
   }
   
   html {
-    /* Improve touch scrolling on iOS */
     -webkit-overflow-scrolling: touch;
-    /* Prevent horizontal scroll */
     overflow-x: hidden;
   }
   
   body {
     margin: 0;
     font-family: 'Glacial Indifference', sans-serif;
-    line-height: 1.7;
-    color: #2c3e50;
-    background-color: #ffffff;
-    /* Prevent horizontal scroll on mobile */
+    line-height: 1.6;
+    color: #333333;
+    background-color: #f8f9fa;
     overflow-x: hidden;
-    /* Improved text rendering */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -30,75 +29,42 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Glacial Indifference', sans-serif;
     font-weight: 600;
-    color: #2c3e50;
+    color: #1a1a1a;
+  }
+
+  .font-glacial {
+    font-family: 'Glacial Indifference', sans-serif;
   }
   
-  .script-text {
+  .font-halimum {
     font-family: 'Halimum', cursive;
-    font-weight: 400;
   }
 }
 
 @layer components {
-  .card-shadow {
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  /* Modern, polished animations */
+  .fade-in {
+    animation: fadeInUp 0.6s ease-out forwards;
   }
   
-  .btn-primary {
-    @apply bg-brand text-white px-8 py-4 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-400 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-yellow-400/50 transform hover:scale-105 active:scale-95;
-    background: linear-gradient(135deg, #1e4395 0%, #2563eb 100%);
-    box-shadow: 0 4px 15px rgba(30, 67, 149, 0.3);
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   
-  .btn-secondary {
-    @apply bg-yellow-400 text-gray-900 px-8 py-4 rounded-xl font-medium transition-all duration-300 hover:bg-yellow-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-yellow-400/50 transform hover:scale-105 active:scale-95;
-    box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
+  /* Enhanced hover interactions for mobile-friendly polish */
+  .hover-lift {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
   
-  .btn-outline {
-    @apply border-2 border-brand text-brand bg-white px-8 py-4 rounded-xl font-medium transition-all duration-300 hover:bg-brand hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/50 transform hover:scale-105 active:scale-95;
-  }
-  
-  .card-elevated {
-    @apply rounded-2xl shadow-xl border-0 overflow-hidden;
-    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1), 0 10px 20px -5px rgba(0, 0, 0, 0.04);
-  }
-  
-  /* Mobile-optimized buttons */
-  .btn-mobile {
-    @apply min-h-[52px] flex items-center justify-center touch-manipulation;
-    /* Remove iOS touch highlight */
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    /* Improve touch area */
-    user-select: none;
-  }
-  
-  /* Mobile-specific responsive utilities */
-  .safe-area-inset {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-  
-  /* Smooth touch interactions with enhanced feedback */
-  .touch-feedback {
-    @apply transform transition-all duration-200 active:scale-95 hover:scale-105;
-  }
-  
-  /* Optimized text shadows for readability */
-  .text-glow {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Soft shadows for depth */
-  .shadow-soft-lg {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-  }
-  
-  .shadow-soft-md {
-    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
   }
 }
