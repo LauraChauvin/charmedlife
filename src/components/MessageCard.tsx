@@ -79,8 +79,17 @@ export default function MessageCard({ message, token }: MessageCardProps) {
     window.open('https://www.zeffy.com/en-US/donation-form/pitchin-for-pads', '_blank', 'noopener,noreferrer')
   }
 
-  const isVideoEmbed = message.type === "Video"
+  // Enhanced type checking for live data handling
+  const isVideoEmbed = message.type === "Video: text embedded" || message.type === "Add text over video"
   const isTextOverImage = message.type === "Add text over image"
+  
+  // Ensure we have a valid mediaURL or use fallback
+  const getMediaUrl = () => {
+    if (message.mediaURL && message.mediaURL.trim() !== '') {
+      return message.mediaURL
+    }
+    return '/chimp.png' // Default fallback image as specified
+  }
   
   // Only show CTA if both cta text and link exist
   const showCTA = message.cta && message.link && message.cta.trim() !== '' && message.link.trim() !== ''
@@ -91,7 +100,7 @@ export default function MessageCard({ message, token }: MessageCardProps) {
       <div className="relative rounded-t-2xl overflow-hidden">
         {isVideoEmbed ? (
           <LazyVideo
-            src={message.mediaURL}
+            src={getMediaUrl()}
             title={message.title}
             className="w-full aspect-video rounded-t-2xl"
             allowFullScreen
@@ -99,7 +108,7 @@ export default function MessageCard({ message, token }: MessageCardProps) {
         ) : isTextOverImage ? (
           <div className="relative">
             <LazyImage
-              src={message.mediaURL}
+              src={getMediaUrl()}
               alt={message.title}
               className="w-full aspect-video object-cover rounded-t-2xl"
             />
@@ -112,7 +121,7 @@ export default function MessageCard({ message, token }: MessageCardProps) {
           </div>
         ) : (
           <LazyImage
-            src={message.mediaURL}
+            src={getMediaUrl()}
             alt={message.title}
             className="w-full aspect-video object-cover rounded-t-2xl"
           />

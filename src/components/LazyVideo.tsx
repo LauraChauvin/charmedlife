@@ -12,17 +12,23 @@ export default function LazyVideo({ src, title, className, allowFullScreen }: La
   const [inView, setInView] = useState(false)
   const videoRef = useRef<HTMLDivElement>(null)
 
-  // Convert YouTube URLs to embed URLs
+  // Convert YouTube URLs to embed URLs and handle Cloudinary videos
   function getVideoEmbedUrl(url: string): string {
-    // Check if it's a YouTube URL
+    // Handle YouTube URLs
     const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-    const match = url.match(youtubeRegex)
+    const youtubeMatch = url.match(youtubeRegex)
     
-    if (match) {
-      return `https://www.youtube.com/embed/${match[1]}`
+    if (youtubeMatch) {
+      return `https://www.youtube.com/embed/${youtubeMatch[1]}`
     }
     
-    // For Cloudinary or direct video URLs
+    // Handle Cloudinary videos - if it contains /video/upload/ convert to iframe URL
+    if (url.includes('res.cloudinary.com') && url.includes('/video/upload/')) {
+      // Cloudinary direct video embed
+      return url
+    }
+    
+    // For other direct video URLs or iframe URLs
     return url
   }
 
