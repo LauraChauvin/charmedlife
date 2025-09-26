@@ -36,7 +36,12 @@ export default function LazyVideo({ src, title, className, allowFullScreen }: La
           observer.disconnect()
         }
       },
-      { threshold: 0.1, rootMargin: '50px' }
+      { 
+        threshold: 0.1, 
+        rootMargin: '50px',
+        // Better mobile performance
+        root: null
+      }
     )
 
     if (videoRef.current) {
@@ -50,7 +55,7 @@ export default function LazyVideo({ src, title, className, allowFullScreen }: La
     <div ref={videoRef} className="relative">
       {inView && !loaded && (
         <div className={`animate-pulse bg-gray-200 flex items-center justify-center ${className}`}>
-          <div className="text-gray-400">Loading video...</div>
+          <div className="text-gray-400 text-sm">Loading video...</div>
         </div>
       )}
       {inView && (
@@ -64,6 +69,10 @@ export default function LazyVideo({ src, title, className, allowFullScreen }: La
           allowFullScreen={allowFullScreen}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          // Mobile optimization
+          style={{
+            contain: 'layout style paint'
+          }}
         />
       )}
     </div>

@@ -41,15 +41,42 @@ export default function MessageCard({ message, token }: MessageCardProps) {
           text: message.message,
           url: window.location.href
         })
+        console.log('Share successful')
       } catch (err) {
         // User cancelled sharing or error occurred
-        console.log('Share cancelled or error occurred:', err)
+        console.log('Share cancelled orerror occurred:', err)
+        // Fallback for unsupported browsers
+        fallbackShare()
       }
+    } else {
+      // Fallback for browsers without Web Share API
+      fallbackShare()
     }
   }
 
+  const fallbackShare = () => {
+    // Fallback sharing method
+    const shareText = `${message.title}\n\n${message.message}\n\n${window.location.href}`
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareText).then(() => {
+        alert('Message copied to clipboard! You can now paste it to share.')
+      }).catch(() => {
+        // Final fallback - create share modal
+        showShareModal(shareText)
+      })
+    } else {
+      showShareModal(shareText)
+    }
+  }
+
+  const showShareModal = (text: string) => {
+    const shareUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
+    window.open(shareUrl, '_blank', 'noopener,noreferrer')
+  }
+
   const handleDonate = () => {
-    window.open('https://www.FootForwardFund.org/donate', '_blank')
+    // Open the correct donation URL for mobile-friendly experience
+    window.open('https://www.zeffy.com/en-US/donation-form/pitchin-for-pads', '_blank', 'noopener,noreferrer')
   }
 
   const isVideoEmbed = message.type === "Video"
@@ -112,27 +139,24 @@ export default function MessageCard({ message, token }: MessageCardProps) {
           </button>
         )}
 
-        {/* Interaction Buttons */}
+        {/* Interaction Buttons - Mobile Optimized */}
         <div className="flex flex-col sm:flex-row gap-3">
-          {/* Share Button */}
+          {/* Share Button - Enhanced for Mobile */}
           <button
             onClick={handleShare}
-            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
-              isShareSupported 
-                ? 'bg-white border-2 border-brand text-brand hover:bg-brand hover:text-white' 
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
-            disabled={!isShareSupported}
+            className="flex-1 px-4 py-4 rounded-lg font-medium bg-white border-2 border-brand text-brand hover:bg-brand hover:text-white transition-all duration-200 btn-mobile touch-feedback"
           >
-            📤 Share
+            <span className="mr-2 text-base">📤</span>
+            Share
           </button>
 
-          {/* Donate Button */}
+          {/* Donate Button - Enhanced for Mobile */}
           <button
             onClick={handleDonate}
-            className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+            className="flex-1 px-4 py-4 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 active:bg-emerald-800 transition-all duration-200 btn-mobile touch-feedback"
           >
-            💝 Donate
+            <span className="mr-2 text-base">💝</span>
+            Donate
           </button>
         </div>
       </div>

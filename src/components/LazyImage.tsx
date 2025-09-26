@@ -19,7 +19,12 @@ export default function LazyImage({ src, alt, className }: LazyImageProps) {
           observer.disconnect()
         }
       },
-      { threshold: 0.1, rootMargin: '50px' }
+      { 
+        threshold: 0.1, 
+        rootMargin: '50px',
+        // Use passive listeners for better mobile performance
+        root: null 
+      }
     )
 
     if (imgRef.current) {
@@ -30,7 +35,7 @@ export default function LazyImage({ src, alt, className }: LazyImageProps) {
   }, [])
 
   return (
-    <div ref={imgRef} className="relative">
+    <div ref={imgRef} className="relative overflow-hidden">
       {inView && (
         <img
           src={src}
@@ -40,11 +45,17 @@ export default function LazyImage({ src, alt, className }: LazyImageProps) {
           } ${className}`}
           onLoad={() => setLoaded(true)}
           loading="lazy"
+          // Mobile-friendly image optimization
+          decoding="async"
+          style={{
+            contain: 'layout style paint',
+            willChange: 'opacity'
+          }}
         />
       )}
       {!loaded && inView && (
         <div className={`animate-pulse bg-gray-200 flex items-center justify-center ${className}`}>
-          <div className="text-gray-400">Loading...</div>
+          <div className="text-gray-400 text-sm">Loading...</div>
         </div>
       )}
     </div>

@@ -55,19 +55,19 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header with Logo */}
-      <header className="flex justify-center py-8 bg-white shadow-sm">
+    <div className="min-h-screen flex flex-col safe-area-inset">
+      {/* Header with Logo - Mobile Optimized */}
+      <header className="flex justify-center py-6 sm:py-8 bg-white shadow-sm sticky top-0 z-10">
         <img 
           src="/logo-blue.png" 
           alt="FootForward Fund" 
-          className="h-16 w-auto object-contain"
+          className="h-14 sm:h-16 w-auto object-contain"
         />
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 px-4 py-8 max-w-md mx-auto w-full">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8 text-center script-text">
+      {/* Main Content - Responsive */}
+      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-8 max-w-md mx-auto w-full min-h-0">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 text-center script-text">
           Daily Message
         </h1>
         

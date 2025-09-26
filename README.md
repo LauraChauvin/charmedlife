@@ -6,11 +6,14 @@ A mobile-first inspirational web app built for bracelets using React + Vite + Ta
 
 - 📱 **Mobile-First Design**: Optimized for mobile devices with responsive layout
 - 🌅 **Daily Message Cards**: Rotating daily inspirational messages
-- 📤 **Share Functionality**: Web Share API integration for easy sharing
-- 💝 **Donate Button**: Direct link to donation page
-- 🖼️ **Media Support**: Images and videos with text overlays
+- 📤 **Advanced Share**: Web Share API with clipboard/link fallbacks
+- 💝 **Donate Integration**: Links to Zeffy donation platform
+- 🖼️ **Smart Media**: Images and videos with text overlays
 - ⚡ **Performance Optimized**: Lazy loading for images and videos
 - 🔗 **URL-based Routing**: Token-based routing system
+- 👆 **Touch Optimized**: Enhanced mobile touch interactions
+- 📐 **Viewport Safe**: Responsive across all screen sizes
+- 🚀 **Mobile Lazy**: Intersection Observer with performance tweaks
 
 ## Technologies Used
 
