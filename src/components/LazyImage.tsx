@@ -4,9 +4,10 @@ interface LazyImageProps {
   src: string
   alt: string
   className?: string
+  fitMode?: 'contain' | 'cover'
 }
 
-export default function LazyImage({ src, alt, className }: LazyImageProps) {
+export default function LazyImage({ src, alt, className, fitMode = 'cover' }: LazyImageProps) {
   const [loaded, setLoaded] = useState(false)
   const [inView, setInView] = useState(false)
   const imgRef = useRef<HTMLImageElement>(null)

@@ -9,7 +9,7 @@ export function Header() {
   }, [])
 
   return (
-    <header className="flex justify-center items-center py-8 px-4 bg-white shadow-sm border-b border-gray-100">
+    <header className="flex justify-center items-center py-6 px-4 bg-white shadow-sm border-b border-gray-100">
       <div 
         className={`
           flex flex-col items-center space-y-3
@@ -20,7 +20,7 @@ export function Header() {
         <img 
           src="/logo-blue.png" 
           alt="FootForward Fund" 
-          className="h-12 w-auto object-contain hover:scale-105 transition-transform duration-300"
+          className="h-20 w-auto object-contain hover:scale-105 transition-transform duration-300"
         />
       </div>
     </header>

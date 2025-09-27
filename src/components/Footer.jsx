@@ -18,6 +18,19 @@ export function Footer() {
       `}
     >
       <div className="w-full max-w-6xl mx-auto px-4">
+        {/* Support the Cause Button */}
+        <div className="text-center mb-12">
+          <button
+            onClick={() => window.open('https://www.zeffy.com/en-US/donation-form/pitchin-for-pads', '_blank', 'noopener,noreferrer')}
+            className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white py-4 px-8 rounded-2xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-500/20 flex items-center justify-center mx-auto font-glacial"
+          >
+            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            Support the Cause
+          </button>
+        </div>
+
         {/* Enhanced Navigation Links - Mobile Responsive with No Stacking */}
         <div className="flex flex-row justify-center items-center gap-2 sm:gap-6 lg:gap-8 mb-8 min-h-[120px] pt-2 overflow-x-auto">
           <a
