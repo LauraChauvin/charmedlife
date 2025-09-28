@@ -19,8 +19,8 @@ export function Header() {
       >
         <img 
           src="/logo-blue.png" 
-          alt="FootForward Fund" 
-          className="h-20 w-auto object-contain hover:scale-105 transition-transform duration-300"
+          alt="Charmed Life" 
+          className="h-32 w-auto object-contain hover:scale-105 transition-transform duration-300"
         />
       </div>
     </header>

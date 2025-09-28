@@ -193,6 +193,7 @@ function mapMessageToTemplate(row) {
     mediaAlt: title,
     ctaText: ctaText,
     ctaLink: ctaLink,
+    link: ctaLink, // Use ctaLink as the main link for now
     accent: 'Daily Inspiration'
   }
 }

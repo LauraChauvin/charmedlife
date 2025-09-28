@@ -20,9 +20,10 @@ export default function MessageCard({
     return day === 2 || day === 16
   }
 
-  // Check if this is a donation message based on CTA text
+  // Check if this is a donation message based on CTA text or link
   const isDonationMessage = () => {
-    return ctaText && ctaText.toLowerCase().includes('donate')
+    return (ctaText && ctaText.toLowerCase().includes('donate')) || 
+           (link && link.includes('zeffy.com'))
   }
 
   useEffect(() => {
@@ -69,6 +70,9 @@ export default function MessageCard({
     window.open('https://www.zeffy.com/en-US/donation-form/pitchin-for-pads', '_blank', 'noopener,noreferrer')
   }
 
+  // Auto-detect media type if it's incorrectly set
+  const actualMediaType = mediaUrl && mediaUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? "image" : mediaType;
+  
   // Wrapper component for media with optional link support
   const MediaWrapper = ({ children }) => {
     if (link) {
@@ -85,8 +89,6 @@ export default function MessageCard({
     }
     return <>{children}</>
   }
-  // Auto-detect media type if it's incorrectly set
-  const actualMediaType = mediaUrl && mediaUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? "image" : mediaType;
   
   return (
     <div className="relative w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-xl" style={{ minHeight: 'min(600px, 60vh)' }}>
@@ -101,6 +103,16 @@ export default function MessageCard({
               title="Daily Message Video"
             />
           </MediaWrapper>
+          
+          {/* Large Charmed Life Logo Overlay - Top Center */}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <img 
+              src="/logo-blue.png" 
+              alt="Charmed Life" 
+              className="h-20 w-20 sm:h-24 sm:w-24 drop-shadow-2xl"
+            />
+          </div>
+          
           <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-4 sm:p-8">
             <div className="max-w-4xl mx-auto">
               <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 drop-shadow-lg leading-tight">
@@ -159,32 +171,30 @@ export default function MessageCard({
               )}
             </div>
           </div>
-          {/* Large Charmed Life Logo Overlay */}
-          <div className="absolute top-4 right-4">
-            <img 
-              src="/logo-blue.png" 
-              alt="Charmed Life" 
-              className="h-16 w-16 sm:h-20 sm:w-20 drop-shadow-lg"
-            />
-          </div>
         </div>
       ) : (
-        <>
+        <div className="relative w-full">
           <MediaWrapper>
             <img
               src={mediaUrl || '/chimp.png'}
               alt={title}
-              className="w-full h-auto object-contain bg-gray-100"
+              className="w-full h-auto object-cover"
               style={{ minHeight: 'min(600px, 60vh)', maxHeight: '800px' }}
               onError={(e) => {
-                console.log('Image failed to load:', mediaUrl);
                 e.target.src = '/chimp.png';
-              }}
-              onLoad={() => {
-                console.log('Image loaded successfully:', mediaUrl || '/chimp.png');
               }}
             />
           </MediaWrapper>
+          
+          {/* Large Charmed Life Logo Overlay - Top Center */}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <img 
+              src="/logo-blue.png" 
+              alt="Charmed Life" 
+              className="h-20 w-20 sm:h-24 sm:w-24 drop-shadow-2xl"
+            />
+          </div>
+          
           <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-4 sm:p-8">
             <div className="max-w-4xl mx-auto">
               <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 drop-shadow-lg leading-tight">
@@ -243,15 +253,7 @@ export default function MessageCard({
               )}
             </div>
           </div>
-          {/* Large Charmed Life Logo Overlay */}
-          <div className="absolute top-4 right-4">
-            <img 
-              src="/logo-blue.png" 
-              alt="Charmed Life" 
-              className="h-16 w-16 sm:h-20 sm:w-20 drop-shadow-lg"
-            />
-          </div>
-        </>
+        </div>
       )}
     </div>
   )

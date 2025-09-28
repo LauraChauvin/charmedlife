@@ -85,14 +85,14 @@ function App() {
           <div className="mb-8 animate-pulse">
             <img 
               src="/logo-blue.png" 
-              alt="FootForward Fund" 
+              alt="Charmed Life" 
               className="h-24 w-auto object-contain drop-shadow-lg"
             />
           </div>
           
           {/* Loading Text */}
           <div className="text-center space-y-4">
-            <h2 className="text-2xl font-bold text-[#1e4395] font-glacial">FootForward Fund</h2>
+            <h2 className="text-2xl font-bold text-[#1e4395] font-glacial">Charmed Life</h2>
             <div className="flex items-center justify-center space-x-2">
               <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#1e4395]/30 border-t-[#1e4395]"></div>
               <p className="text-gray-600 font-medium font-glacial">Loading today's inspiration...</p>
@@ -147,6 +147,7 @@ function App() {
             ctaText={message.ctaText}
             ctaLink={message.ctaLink}
             accent={message.accent}
+            link={message.link}
           />
         )}
         {error && (

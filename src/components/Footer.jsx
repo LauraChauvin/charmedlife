@@ -92,7 +92,7 @@ export function Footer() {
 
         {/* Sophisticated Copyright Section */}
         <div className="border-t border-white/20 pt-6 text-center">
-          <p className="text-white/70 text-sm font-medium">© {year} FootForward Fund</p>
+          <p className="text-white/70 text-sm font-medium">© {year} Charmed Life</p>
           <p className="text-white/60 text-xs mt-2 font-light">Spreading inspiration one day at a time 💙</p>
         </div>
       </div>
