@@ -58,20 +58,20 @@ export default function LandingPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-50 safe-area-inset bg-white">
       {/* Sophisticated Header */}
       <header className="flex justify-center py-12 sm:py-16 bg-gradient-to-r from-white/95 via-blue-50/95 to-indigo-50/95 backdrop-blur-xl shadow-lg border-b border-white/20 sticky top-0 z-30">
-        <div className="flex flex-col items-center space-y-4">
+        <div className="flex flex-col items-center space-y-6">
           <div className="relative">
-            <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/20 to-indigo-600/20 rounded-2xl blur-xl"></div>
+            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-indigo-600/20 rounded-2xl blur-xl"></div>
             <img 
               src="/logo-blue.png" 
-              alt="FootForward Fund" 
-              className="relative h-20 sm:h-24 w-auto object-contain animate-fade-in"
+              alt="Charmed Life" 
+              className="relative h-32 sm:h-40 w-auto object-contain animate-fade-in"
             />
           </div>
           <div className="text-center space-y-2">
-            <div className="text-sm text-indigo-600 font-medium tracking-wider uppercase">
-              FF Foundation
+            <div className="text-lg text-indigo-600 font-bold tracking-wider uppercase">
+              Charmed Life
             </div>
-            <div className="text-xs text-gray-500 font-light tracking-wider max-w-xs">
+            <div className="text-sm text-gray-500 font-light tracking-wider max-w-xs">
               Empowering communities through purposeful connections
             </div>
           </div>
@@ -105,10 +105,28 @@ export default function LandingPage() {
         ) : error ? (
           <div className="bg-white/95 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-red-100 bg-gradient-to-br from-white to-red-50/30">
             <p className="text-red-600 text-center mb-6 text-lg">{error}</p>
-            {dailyMessage && <MessageCard message={dailyMessage} token={token} />}
+            {dailyMessage && <MessageCard 
+              title={dailyMessage.title}
+              message={dailyMessage.message}
+              mediaUrl={dailyMessage.mediaURL}
+              mediaType={dailyMessage.type}
+              ctaText={dailyMessage.cta}
+              ctaLink={dailyMessage.link}
+              link={dailyMessage.link}
+              token={token} 
+            />}
           </div>
         ) : (
-          dailyMessage && <MessageCard message={dailyMessage} token={token} />
+          dailyMessage && <MessageCard 
+            title={dailyMessage.title}
+            message={dailyMessage.message}
+            mediaUrl={dailyMessage.mediaURL}
+            mediaType={dailyMessage.type}
+            ctaText={dailyMessage.cta}
+            ctaLink={dailyMessage.link}
+            link={dailyMessage.link}
+            token={token} 
+          />
         )}
       </main>
 

@@ -8,6 +8,7 @@ export default function MessageCard({
   ctaText,
   ctaLink,
   accent,
+  link, // New prop for optional link URL from Google Sheet
 }) {
   // Debug logging
   console.log('MessageCard props:', { title, mediaUrl, mediaType });
@@ -17,6 +18,11 @@ export default function MessageCard({
   const isDonateDay = () => {
     const day = new Date().getDate()
     return day === 2 || day === 16
+  }
+
+  // Check if this is a donation message based on CTA text
+  const isDonationMessage = () => {
+    return ctaText && ctaText.toLowerCase().includes('donate')
   }
 
   useEffect(() => {
@@ -62,6 +68,23 @@ export default function MessageCard({
   const handleDonate = () => {
     window.open('https://www.zeffy.com/en-US/donation-form/pitchin-for-pads', '_blank', 'noopener,noreferrer')
   }
+
+  // Wrapper component for media with optional link support
+  const MediaWrapper = ({ children }) => {
+    if (link) {
+      return (
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block transition-all duration-300 hover:scale-105 hover:brightness-110"
+        >
+          {children}
+        </a>
+      )
+    }
+    return <>{children}</>
+  }
   // Auto-detect media type if it's incorrectly set
   const actualMediaType = mediaUrl && mediaUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? "image" : mediaType;
   
@@ -69,13 +92,15 @@ export default function MessageCard({
     <div className="relative w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-xl" style={{ minHeight: 'min(600px, 60vh)' }}>
       {actualMediaType === "video" ? (
         <div className="relative w-full aspect-video">
-          <iframe
-            src={mediaUrl}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title="Daily Message Video"
-          />
+          <MediaWrapper>
+            <iframe
+              src={mediaUrl}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title="Daily Message Video"
+            />
+          </MediaWrapper>
           <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-4 sm:p-8">
             <div className="max-w-4xl mx-auto">
               <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 drop-shadow-lg leading-tight">
@@ -100,7 +125,7 @@ export default function MessageCard({
                 </a>
               )}
               {/* Share/Donate Button */}
-              {isDonateDay() ? (
+              {(isDonateDay() || isDonationMessage()) ? (
                 <button
                   onClick={handleDonate}
                   className="
@@ -134,22 +159,32 @@ export default function MessageCard({
               )}
             </div>
           </div>
+          {/* Large Charmed Life Logo Overlay */}
+          <div className="absolute top-4 right-4">
+            <img 
+              src="/logo-blue.png" 
+              alt="Charmed Life" 
+              className="h-16 w-16 sm:h-20 sm:w-20 drop-shadow-lg"
+            />
+          </div>
         </div>
       ) : (
         <>
-          <img
-            src={mediaUrl || '/chimp.png'}
-            alt={title}
-            className="w-full h-auto object-contain bg-gray-100"
-            style={{ minHeight: 'min(600px, 60vh)', maxHeight: '800px' }}
-            onError={(e) => {
-              console.log('Image failed to load:', mediaUrl);
-              e.target.src = '/chimp.png';
-            }}
-            onLoad={() => {
-              console.log('Image loaded successfully:', mediaUrl || '/chimp.png');
-            }}
-          />
+          <MediaWrapper>
+            <img
+              src={mediaUrl || '/chimp.png'}
+              alt={title}
+              className="w-full h-auto object-contain bg-gray-100"
+              style={{ minHeight: 'min(600px, 60vh)', maxHeight: '800px' }}
+              onError={(e) => {
+                console.log('Image failed to load:', mediaUrl);
+                e.target.src = '/chimp.png';
+              }}
+              onLoad={() => {
+                console.log('Image loaded successfully:', mediaUrl || '/chimp.png');
+              }}
+            />
+          </MediaWrapper>
           <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-4 sm:p-8">
             <div className="max-w-4xl mx-auto">
               <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 drop-shadow-lg leading-tight">
@@ -174,7 +209,7 @@ export default function MessageCard({
                 </a>
               )}
               {/* Share/Donate Button */}
-              {isDonateDay() ? (
+              {(isDonateDay() || isDonationMessage()) ? (
                 <button
                   onClick={handleDonate}
                   className="
@@ -207,6 +242,14 @@ export default function MessageCard({
                 </button>
               )}
             </div>
+          </div>
+          {/* Large Charmed Life Logo Overlay */}
+          <div className="absolute top-4 right-4">
+            <img 
+              src="/logo-blue.png" 
+              alt="Charmed Life" 
+              className="h-16 w-16 sm:h-20 sm:w-20 drop-shadow-lg"
+            />
           </div>
         </>
       )}
