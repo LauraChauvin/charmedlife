@@ -5,20 +5,10 @@ import { Footer } from './components/Footer'
 import { getDailyMessage } from './services/sheetService'
 import './index.css'
 
-interface Message {
-  title: string
-  message: string
-  mediaType: string
-  mediaUrl: string
-  ctaText: string
-  ctaLink: string
-  accent: string
-}
-
 function App() {
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState<Message | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const loadDailyMessage = async () => {

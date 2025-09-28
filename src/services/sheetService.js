@@ -2,18 +2,21 @@
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-xYhLTBE31o3fcg-kghTOMwTIiy0vlIkHX8PoPkmcPKE1j4frp7kw6E0nmFNxG4oQ4Di9eJsnuduh/pub?output=csv"
 
 /**
- * Parse CSV text into JSON objects
+ * Parse CSV text into JSON objects with proper handling of quoted fields
  * @param {string} csvText Raw CSV string
  * @returns {Array} Array of message objects
  */
 export function parseCsvToJson(csvText) {
   const lines = csvText.trim().split('\n')
-  const headers = lines[0].split(',').map(h => h.trim())
+  if (lines.length < 2) return []
+  
+  // Parse headers with proper CSV handling
+  const headers = parseCsvLine(lines[0])
   const messages = []
   
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim())
-    if (values.length >= headers.length) {
+    const values = parseCsvLine(lines[i])
+    if (values.length >= 3) { // Minimum required fields
       const message = {}
       headers.forEach((header, index) => {
         message[header] = values[index] || ''
@@ -23,6 +26,33 @@ export function parseCsvToJson(csvText) {
   }
   
   return messages
+}
+
+/**
+ * Parse a single CSV line handling quoted fields properly
+ * @param {string} line CSV line
+ * @returns {Array} Array of field values
+ */
+function parseCsvLine(line) {
+  const result = []
+  let current = ''
+  let inQuotes = false
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    
+    if (char === '"') {
+      inQuotes = !inQuotes
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  
+  result.push(current.trim())
+  return result
 }
 
 /**
@@ -88,23 +118,39 @@ function getDayOfYear() {
  */
 export async function getDailyMessage() {
   try {
+    console.log('Fetching data from Google Sheets...')
     const messages = await fetchSheetData()
+    console.log('Raw messages from sheet:', messages.length, 'messages found')
     
     if (!messages || messages.length === 0) {
       throw new Error('No messages found in spreadsheet')
     }
     
+    // Filter out messages without titles
+    const validMessages = messages.filter(msg => {
+      const title = msg['Title/Headline (if applicable)'] || msg['Title / Quote'] || msg['Title'] || msg['Headline']
+      return title && title.trim() !== ''
+    })
+    
+    console.log('Valid messages with titles:', validMessages.length)
+    
+    if (validMessages.length === 0) {
+      throw new Error('No valid messages found')
+    }
+    
     // 1. Try to match today's exact date in US EST
-    const todayMessage = messages.find(row => isToday(row.Date))
+    const todayMessage = validMessages.find(row => isToday(row.Date))
     if (todayMessage) {
+      console.log('Found message for today:', todayMessage)
       return mapMessageToTemplate(todayMessage)
     }
     
     // 2. Otherwise, rotate based on day of year
     const dayOfYear = getDayOfYear()
-    const rotationIndex = dayOfYear % messages.length
-    const rotatingMessage = messages[rotationIndex]
+    const rotationIndex = dayOfYear % validMessages.length
+    const rotatingMessage = validMessages[rotationIndex]
     
+    console.log('Using rotating message for day', dayOfYear, ':', rotatingMessage)
     return mapMessageToTemplate(rotatingMessage)
     
   } catch (error) {
@@ -128,22 +174,60 @@ export async function getDailyMessage() {
  * @returns {Object} Normalized message object for the MessageCard component
  */
 function mapMessageToTemplate(row) {
-  // Don't use "Add text over image" as accent text
-  const getAccentText = (type) => {
-    if (!type) return 'Purpose'
-    if (type.toLowerCase().includes('add text over image')) return 'Inspiration'
-    if (type.toLowerCase().includes('video')) return 'Daily Focus'
-    return type
-  }
-
+  // Map various possible column names to our expected fields
+  const title = row['Title/Headline (if applicable)'] || row['Title / Quote'] || row['Title'] || row['Headline'] || 'Daily Inspiration'
+  const message = row['Message'] || row['Quote'] || row['Text'] || 'Sometimes the best days start with a simple moment of inspiration.'
+  const mediaUrl = row['Image/Video Link'] || row['MediaURL'] || row['Media URL'] || row['Image Link'] || '/chimp.png'
+  const mediaType = row['Type'] || row['Media Type'] || 'image'
+  const ctaText = row['CTA'] || row['Call to Action'] || row['Button Text'] || ''
+  const ctaLink = row['Link'] || row['CTA Link'] || row['Button Link'] || ''
+  
+  // Convert Google Drive URLs to direct image URLs
+  const processedMediaUrl = convertGoogleDriveUrl(mediaUrl)
+  
   return {
-    title: row.Title || 'Daily Inspiration',
-    message: row.Message || 'Sometimes the best days start with a simple moment of inspiration.',
-    mediaType: getMediaType(row.Type || 'image'),
-    mediaUrl: row.MediaURL || '/chimp.png',
-    mediaAlt: row.Title || 'Daily inspiration media',
-    ctaText: row.CTA || '',
-    onCtaClick: row.Link ? () => window.open(row.Link, '_blank', 'noopener,noreferrer') : null,
-    accent: getAccentText(row.Type)
+    title: title,
+    message: message,
+    mediaType: getMediaType(mediaType),
+    mediaUrl: processedMediaUrl,
+    mediaAlt: title,
+    ctaText: ctaText,
+    ctaLink: ctaLink,
+    accent: 'Daily Inspiration'
   }
+}
+
+/**
+ * Convert Google Drive file URLs to direct image URLs
+ * @param {string} url Original URL
+ * @returns {string} Converted URL
+ */
+function convertGoogleDriveUrl(url) {
+  if (!url || url === '/chimp.png') return '/chimp.png'
+  
+  // If it's already a direct image URL, return as-is
+  if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+    return url
+  }
+  
+  // If it's a YouTube URL, return as-is
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    return url
+  }
+  
+  // Convert Google Drive file view URL to direct image URL
+  if (url.includes('drive.google.com/file/d/')) {
+    const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/)
+    if (fileIdMatch) {
+      return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`
+    }
+  }
+  
+  // If it's already a direct Google Drive image URL, return as-is
+  if (url.includes('uc?export=view')) {
+    return url
+  }
+  
+  // Fallback to chimp.png for any other URLs
+  return '/chimp.png'
 }
