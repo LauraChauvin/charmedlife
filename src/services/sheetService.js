@@ -151,7 +151,9 @@ export async function getDailyMessage() {
     const rotatingMessage = validMessages[rotationIndex]
     
     console.log('Using rotating message for day', dayOfYear, ':', rotatingMessage)
-    return mapMessageToTemplate(rotatingMessage)
+    const mappedMessage = mapMessageToTemplate(rotatingMessage)
+    console.log('Mapped message for display:', mappedMessage)
+    return mappedMessage
     
   } catch (error) {
     console.error('Error in getDailyMessage:', error)
@@ -176,11 +178,11 @@ export async function getDailyMessage() {
 function mapMessageToTemplate(row) {
   // Map various possible column names to our expected fields
   const title = row['Title/Headline (if applicable)'] || row['Title / Quote'] || row['Title'] || row['Headline'] || 'Daily Inspiration'
-  const message = row['Message'] || row['Quote'] || row['Text'] || 'Sometimes the best days start with a simple moment of inspiration.'
+  const message = row['Body / Key Message (if applicable)'] || row['Message'] || row['Quote'] || row['Text'] || 'Sometimes the best days start with a simple moment of inspiration.'
   const mediaUrl = row['Image/Video Link'] || row['MediaURL'] || row['Media URL'] || row['Image Link'] || '/chimp.png'
   const mediaType = row['Type'] || row['Media Type'] || 'image'
-  const ctaText = row['CTA'] || row['Call to Action'] || row['Button Text'] || ''
-  const ctaLink = row['Link'] || row['CTA Link'] || row['Button Link'] || ''
+  const ctaText = row['External Link CTA Messaging (if applicable)'] || row['CTA'] || row['Call to Action'] || row['Button Text'] || ''
+  const ctaLink = row['External Link (if applicable)'] || row['Link'] || row['CTA Link'] || row['Button Link'] || ''
   
   // Convert Google Drive URLs to direct image URLs
   const processedMediaUrl = convertGoogleDriveUrl(mediaUrl)

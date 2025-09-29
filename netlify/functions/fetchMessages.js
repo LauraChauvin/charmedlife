@@ -45,18 +45,23 @@ exports.handler = async (event, context) => {
       throw new Error('No data in CSV')
     }
     
+    // First, get the header row to understand column mapping
+    const headers = rows[0] || []
     const messages = rows.slice(1) // Skip header row
       .filter(row => row.length >= 6 && row.some(cell => cell && cell.trim() !== ''))
-      .map(row => ({
-        date: row[0] || '',
-        type: row[1] || 'Add text over image',
-        title: row[2] || '',
-        message: row[3] || '',
-        mediaURL: row[4] || '',
-        cta: row[5] || '',
-        link: row[6] || ''
-      }))
-      .filter(msg => msg.title.trim() !== '') // Only include messages with titles
+      .map(row => {
+        // Create object with proper field names based on headers
+        const messageObj = {}
+        headers.forEach((header, index) => {
+          messageObj[header] = row[index] || ''
+        })
+        return messageObj
+      })
+      .filter(msg => {
+        // Check if message has a title using the actual column name
+        const title = msg['Title/Headline (if applicable)'] || msg['Title / Quote'] || msg['Title'] || msg['Headline']
+        return title && title.trim() !== ''
+      })
     
     return {
       statusCode: 200,
