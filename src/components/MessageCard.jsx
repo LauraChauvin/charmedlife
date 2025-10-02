@@ -179,26 +179,35 @@ export default function MessageCard({
       {/* Enhanced gradient overlay for readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70"></div>
       
-      {/* Charmed Life Logo - Top Center */}
-      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20">
-        <img 
-          src="/logo-blue.png" 
-          alt="Charmed Life" 
-          className="h-16 w-16 sm:h-20 sm:w-20 drop-shadow-2xl"
-        />
-      </div>
       
       {/* Enhanced overlay content with animations */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center">
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-white drop-shadow-lg animate-fadeInUp">
-          {title}
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-white drop-shadow-lg animate-fadeInUp">
+          {title.includes('Women We Love:') ? (
+            <>
+              Women We Love:<br />
+              {title.replace('Women We Love: ', '')}
+            </>
+          ) : (
+            title
+          )}
         </h2>
         <p className="mt-4 text-lg sm:text-xl text-white/90 leading-relaxed max-w-lg animate-fadeInUp delay-200">
           {message}
         </p>
         
-        {/* CTA Button */}
-        {ctaText && link && (
+        {/* Single CTA Button - Show donate button for donation messages, regular CTA for others, or share button as fallback */}
+        {(isDonateDay() || isDonationMessage()) ? (
+          <button
+            onClick={handleDonate}
+            className="mt-8 inline-flex items-center bg-white/30 backdrop-blur-md border border-white/40 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-white/40 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
+          >
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            Donate Now
+          </button>
+        ) : ctaText && link ? (
           <a
             href={link}
             target="_blank"
@@ -211,19 +220,6 @@ export default function MessageCard({
             </svg>
             {ctaText}
           </a>
-        )}
-        
-        {/* Share/Donate Button */}
-        {(isDonateDay() || isDonationMessage()) ? (
-          <button
-            onClick={handleDonate}
-            className="mt-8 inline-flex items-center bg-white/30 backdrop-blur-md border border-white/40 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-white/40 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
-          >
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-            Donate Now
-          </button>
         ) : (
           <button
             onClick={handleShare}
