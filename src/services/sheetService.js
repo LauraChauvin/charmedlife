@@ -121,6 +121,7 @@ export async function getDailyMessage() {
     console.log('Fetching data from Google Sheets...')
     const messages = await fetchSheetData()
     console.log('Raw messages from sheet:', messages.length, 'messages found')
+    console.log('First few messages:', messages.slice(0, 3))
     
     if (!messages || messages.length === 0) {
       throw new Error('No messages found in spreadsheet')
@@ -142,7 +143,9 @@ export async function getDailyMessage() {
     const todayMessage = validMessages.find(row => isToday(row.Date))
     if (todayMessage) {
       console.log('Found message for today:', todayMessage)
-      return mapMessageToTemplate(todayMessage)
+      const mapped = mapMessageToTemplate(todayMessage)
+      console.log('Mapped today message:', mapped)
+      return mapped
     }
     
     // 2. Otherwise, rotate based on day of year
@@ -152,7 +155,7 @@ export async function getDailyMessage() {
     
     console.log('Using rotating message for day', dayOfYear, ':', rotatingMessage)
     const mappedMessage = mapMessageToTemplate(rotatingMessage)
-    console.log('Mapped message for display:', mappedMessage)
+    console.log('Mapped rotating message:', mappedMessage)
     return mappedMessage
     
   } catch (error) {
@@ -176,6 +179,8 @@ export async function getDailyMessage() {
  * @returns {Object} Normalized message object for the MessageCard component
  */
 function mapMessageToTemplate(row) {
+  console.log('Mapping row data:', row)
+  
   // Map various possible column names to our expected fields
   const title = row['Title/Headline (if applicable)'] || row['Title / Quote'] || row['Title'] || row['Headline'] || 'Daily Inspiration'
   const message = row['Body / Key Message (if applicable)'] || row['Message'] || row['Quote'] || row['Text'] || 'Sometimes the best days start with a simple moment of inspiration.'
@@ -184,13 +189,19 @@ function mapMessageToTemplate(row) {
   const ctaText = row['External Link CTA Messaging (if applicable)'] || row['CTA'] || row['Call to Action'] || row['Button Text'] || ''
   const ctaLink = row['External Link (if applicable)'] || row['Link'] || row['CTA Link'] || row['Button Link'] || ''
   
-  // Convert Google Drive URLs to direct image URLs
-  const processedMediaUrl = convertGoogleDriveUrl(mediaUrl)
+  console.log('Extracted fields:', { title, message, mediaUrl, mediaType, ctaText, ctaLink })
   
-  return {
+  // Determine the final media type
+  const finalMediaType = getMediaType(mediaType)
+  
+  // Convert Google Drive URLs to appropriate URLs based on media type
+  const processedMediaUrl = convertGoogleDriveUrl(mediaUrl, finalMediaType)
+  console.log('URL conversion:', { original: mediaUrl, processed: processedMediaUrl, mediaType: finalMediaType })
+  
+  const result = {
     title: title,
     message: message,
-    mediaType: getMediaType(mediaType),
+    mediaType: finalMediaType,
     mediaUrl: processedMediaUrl,
     mediaAlt: title,
     ctaText: ctaText,
@@ -198,14 +209,18 @@ function mapMessageToTemplate(row) {
     link: ctaLink, // Use ctaLink as the main link for now
     accent: 'Daily Inspiration'
   }
+  
+  console.log('Final mapped result:', result)
+  return result
 }
 
 /**
- * Convert Google Drive file URLs to direct image URLs
+ * Convert Google Drive file URLs to appropriate URLs based on media type
  * @param {string} url Original URL
+ * @param {string} mediaType The media type (image/video)
  * @returns {string} Converted URL
  */
-function convertGoogleDriveUrl(url) {
+function convertGoogleDriveUrl(url, mediaType = 'image') {
   if (!url || url === '/chimp.png') return '/chimp.png'
   
   // If it's already a direct image URL, return as-is
@@ -218,16 +233,29 @@ function convertGoogleDriveUrl(url) {
     return url
   }
   
-  // Convert Google Drive file view URL to direct image URL
+  // Convert Google Drive file view URL
   if (url.includes('drive.google.com/file/d/')) {
     const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/)
     if (fileIdMatch) {
-      return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`
+      const fileId = fileIdMatch[1]
+      
+      // For videos, use the embed URL instead of direct view
+      if (mediaType === 'video') {
+        return `https://drive.google.com/file/d/${fileId}/preview`
+      } else {
+        // For images, use the direct view URL
+        return `https://drive.google.com/uc?export=view&id=${fileId}`
+      }
     }
   }
   
   // If it's already a direct Google Drive image URL, return as-is
   if (url.includes('uc?export=view')) {
+    return url
+  }
+  
+  // If it's already a Google Drive preview URL, return as-is
+  if (url.includes('drive.google.com/file/d/') && url.includes('/preview')) {
     return url
   }
   

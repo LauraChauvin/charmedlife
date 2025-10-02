@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react"
+import LazyImage from "./LazyImage"
+import LazyVideo from "./LazyVideo"
 
 export default function MessageCard({
   title,
@@ -11,7 +13,7 @@ export default function MessageCard({
   link, // New prop for optional link URL from Google Sheet
 }) {
   // Debug logging
-  console.log('MessageCard props:', { title, mediaUrl, mediaType });
+  console.log('MessageCard props:', { title, message, mediaUrl, mediaType, ctaText, link });
   const [isShareSupported, setIsShareSupported] = useState(false)
 
   // Calendar-based logic for donate days
@@ -70,191 +72,170 @@ export default function MessageCard({
     window.open('https://www.zeffy.com/en-US/donation-form/pitchin-for-pads', '_blank', 'noopener,noreferrer')
   }
 
-  // Auto-detect media type if it's incorrectly set
-  const actualMediaType = mediaUrl && mediaUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? "image" : mediaType;
+  // Determine media type - trust the mediaType prop if it's already set correctly
+  const getMediaType = (url) => {
+    if (!url || url.trim() === '') return 'fallback'
+    
+    // If mediaType is already 'video', trust it
+    if (mediaType === 'video') return 'video'
+    
+    const lowerUrl = url.toLowerCase()
+    
+    // Check for video extensions
+    if (lowerUrl.match(/\.(mp4|mov|avi|webm|ogg)$/)) return 'video'
+    
+    // Check for YouTube or Cloudinary video URLs
+    if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be') || 
+        lowerUrl.includes('cloudinary.com') || lowerUrl.includes('vimeo.com')) return 'video'
+    
+    // Check for image extensions
+    if (lowerUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) return 'image'
+    
+    // Default to image for other URLs
+    return 'image'
+  }
+
+  const actualMediaType = getMediaType(mediaUrl)
   
-  // Wrapper component for media with optional link support
-  const MediaWrapper = ({ children }) => {
-    if (link) {
+  // Debug logging for media detection
+  console.log('Media detection:', {
+    originalMediaType: mediaType,
+    detectedMediaType: actualMediaType,
+    mediaUrl: mediaUrl
+  });
+  
+  
+  // Render background media based on type
+  const renderBackgroundMedia = () => {
+    console.log('Rendering background media:', { actualMediaType, mediaUrl, title });
+    
+    if (actualMediaType === 'fallback' || !mediaUrl) {
+      console.log('Using fallback image: /chimp.png');
       return (
-        <a
-          href={link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block transition-all duration-300 hover:scale-105 hover:brightness-110"
-        >
-          {children}
-        </a>
+        <img
+          src="/chimp.png"
+          alt={title}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
       )
     }
-    return <>{children}</>
+
+    if (actualMediaType === 'video') {
+      console.log('Rendering video:', mediaUrl);
+      // For videos, use iframe for external links (YouTube, Google Drive) or video element for direct files
+      if (mediaUrl.includes('youtube.com') || mediaUrl.includes('youtu.be') || mediaUrl.includes('drive.google.com')) {
+        return (
+          <iframe
+            src={mediaUrl}
+            title={title}
+            className="absolute inset-0 w-full h-full"
+            allowFullScreen={true}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          />
+        )
+      } else {
+        // For direct video files
+        return (
+          <video
+            src={mediaUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )
+      }
+    }
+
+    console.log('Rendering image:', mediaUrl);
+    return (
+      <img
+        src={mediaUrl}
+        alt={title}
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+    )
   }
-  
+
   return (
-    <div className="relative w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-xl" style={{ minHeight: 'min(600px, 60vh)' }}>
-      {actualMediaType === "video" ? (
-        <div className="relative w-full aspect-video">
-          <MediaWrapper>
-            <iframe
-              src={mediaUrl}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              title="Daily Message Video"
-            />
-          </MediaWrapper>
-          
-          {/* Large Charmed Life Logo Overlay - Top Center */}
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
-            <img 
-              src="/logo-blue.png" 
-              alt="Charmed Life" 
-              className="h-20 w-20 sm:h-24 sm:w-24 drop-shadow-2xl"
-            />
-          </div>
-          
-          <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-4 sm:p-8">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 drop-shadow-lg leading-tight">
-                {title}
-              </h2>
-              <p className="text-white text-base sm:text-lg lg:text-xl font-light leading-relaxed drop-shadow-lg">
-                {message}
-              </p>
-              {/* CTA */}
-              {ctaText && ctaLink && (
-                <a
-                  href={ctaLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="
-                    inline-block mt-4 px-6 py-3 rounded-xl font-semibold 
-                    bg-blue-600 hover:bg-blue-500 transition-colors 
-                    shadow-md hover:shadow-xl text-white
-                  "
-                >
-                  {ctaText}
-                </a>
-              )}
-              {/* Share/Donate Button */}
-              {(isDonateDay() || isDonationMessage()) ? (
-                <button
-                  onClick={handleDonate}
-                  className="
-                    inline-flex items-center mt-3 px-6 py-3 rounded-xl font-semibold 
-                    bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 
-                    hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500
-                    transition-all duration-300 text-white
-                    shadow-md hover:shadow-xl
-                  "
-                >
-                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                  Donate Now
-                </button>
-              ) : (
-                <button
-                  onClick={handleShare}
-                  className="
-                    inline-flex items-center mt-3 px-6 py-3 rounded-xl font-semibold 
-                    bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20
-                    transition-all duration-300 text-white
-                    shadow-md hover:shadow-xl
-                  "
-                >
-                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                  </svg>
-                  Share Message
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="relative w-full">
-          <MediaWrapper>
-            <img
-              src={mediaUrl || '/chimp.png'}
-              alt={title}
-              className="w-full h-auto object-cover"
-              style={{ minHeight: 'min(600px, 60vh)', maxHeight: '800px' }}
-              onError={(e) => {
-                e.target.src = '/chimp.png';
-              }}
-            />
-          </MediaWrapper>
-          
-          {/* Large Charmed Life Logo Overlay - Top Center */}
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
-            <img 
-              src="/logo-blue.png" 
-              alt="Charmed Life" 
-              className="h-20 w-20 sm:h-24 sm:w-24 drop-shadow-2xl"
-            />
-          </div>
-          
-          <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-4 sm:p-8">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 drop-shadow-lg leading-tight">
-                {title}
-              </h2>
-              <p className="text-white text-base sm:text-lg lg:text-xl font-light leading-relaxed drop-shadow-lg">
-                {message}
-              </p>
-              {/* CTA */}
-              {ctaText && ctaLink && (
-                <a
-                  href={ctaLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="
-                    inline-block mt-4 px-6 py-3 rounded-xl font-semibold 
-                    bg-blue-600 hover:bg-blue-500 transition-colors 
-                    shadow-md hover:shadow-xl text-white
-                  "
-                >
-                  {ctaText}
-                </a>
-              )}
-              {/* Share/Donate Button */}
-              {(isDonateDay() || isDonationMessage()) ? (
-                <button
-                  onClick={handleDonate}
-                  className="
-                    inline-flex items-center mt-3 px-6 py-3 rounded-xl font-semibold 
-                    bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 
-                    hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500
-                    transition-all duration-300 text-white
-                    shadow-md hover:shadow-xl
-                  "
-                >
-                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                  Donate Now
-                </button>
-              ) : (
-                <button
-                  onClick={handleShare}
-                  className="
-                    inline-flex items-center mt-3 px-6 py-3 rounded-xl font-semibold 
-                    bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20
-                    transition-all duration-300 text-white
-                    shadow-md hover:shadow-xl
-                  "
-                >
-                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                  </svg>
-                  Share Message
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+    <div className="relative w-full max-w-sm mx-auto h-[380px] sm:h-[480px] rounded-3xl overflow-hidden shadow-2xl">
+      {/* Clickable Background Media */}
+      {mediaUrl && (
+        <a
+          href={mediaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute inset-0 z-10"
+        >
+          {renderBackgroundMedia()}
+        </a>
       )}
+      
+      {/* Fallback image if no mediaUrl */}
+      {!mediaUrl && renderBackgroundMedia()}
+      
+      {/* Enhanced gradient overlay for readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70"></div>
+      
+      {/* Charmed Life Logo - Top Center */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20">
+        <img 
+          src="/logo-blue.png" 
+          alt="Charmed Life" 
+          className="h-16 w-16 sm:h-20 sm:w-20 drop-shadow-2xl"
+        />
+      </div>
+      
+      {/* Enhanced overlay content with animations */}
+      <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center">
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-white drop-shadow-lg animate-fadeInUp">
+          {title}
+        </h2>
+        <p className="mt-4 text-lg sm:text-xl text-white/90 leading-relaxed max-w-lg animate-fadeInUp delay-200">
+          {message}
+        </p>
+        
+        {/* CTA Button */}
+        {ctaText && link && (
+          <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-8 inline-flex items-center bg-white/30 backdrop-blur-md border border-white/40 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-white/40 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            {ctaText}
+          </a>
+        )}
+        
+        {/* Share/Donate Button */}
+        {(isDonateDay() || isDonationMessage()) ? (
+          <button
+            onClick={handleDonate}
+            className="mt-8 inline-flex items-center bg-white/30 backdrop-blur-md border border-white/40 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-white/40 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
+          >
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            Donate Now
+          </button>
+        ) : (
+          <button
+            onClick={handleShare}
+            className="mt-8 inline-flex items-center bg-white/30 backdrop-blur-md border border-white/40 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-white/40 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367-2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+            </svg>
+            Share Message
+          </button>
+        )}
+      </div>
     </div>
   )
 }

@@ -41,7 +41,7 @@ export default function LazyImage({ src, alt, className, fitMode = 'cover' }: La
         <img
           src={src}
           alt={alt}
-          className={`transition-opacity duration-300 ${
+          className={`transition-opacity duration-300 object-${fitMode} ${
             loaded ? 'opacity-100' : 'opacity-0'
           } ${className}`}
           onLoad={() => setLoaded(true)}

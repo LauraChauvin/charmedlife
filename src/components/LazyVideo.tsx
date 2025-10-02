@@ -58,9 +58,9 @@ export default function LazyVideo({ src, title, className, allowFullScreen }: La
   }, [])
 
   return (
-    <div ref={videoRef} className="relative">
+    <div ref={videoRef} className={`relative ${className}`}>
       {inView && !loaded && (
-        <div className={`animate-pulse bg-gray-200 flex items-center justify-center ${className}`}>
+        <div className="animate-pulse bg-gray-200 flex items-center justify-center w-full h-full">
           <div className="text-gray-400 text-sm">Loading video...</div>
         </div>
       )}
@@ -68,9 +68,9 @@ export default function LazyVideo({ src, title, className, allowFullScreen }: La
         <iframe
           src={embedUrl}
           title={title}
-          className={`transition-opacity duration-300 ${
+          className={`transition-opacity duration-300 w-full h-full ${
             loaded ? 'opacity-100' : 'opacity-0'
-          } ${className}`}
+          }`}
           onLoad={() => setLoaded(true)}
           allowFullScreen={allowFullScreen}
           frameBorder="0"

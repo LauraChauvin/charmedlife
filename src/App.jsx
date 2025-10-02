@@ -19,6 +19,7 @@ function App() {
         setLoading(true)
         setError(null)
         const dailyMessage = await getDailyMessage()
+        console.log('Fetched daily message:', dailyMessage)
         setMessage(dailyMessage)
       } catch (err) {
         console.error('Failed to load daily message:', err)
@@ -145,8 +146,6 @@ function App() {
             mediaType={message.mediaType}
             mediaUrl={message.mediaUrl}
             ctaText={message.ctaText}
-            ctaLink={message.ctaLink}
-            accent={message.accent}
             link={message.link}
           />
         )}
