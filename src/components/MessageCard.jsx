@@ -160,7 +160,7 @@ export default function MessageCard({
   }
 
   return (
-    <div className="relative w-full max-w-sm mx-auto h-[380px] sm:h-[480px] rounded-3xl overflow-hidden shadow-2xl">
+    <div className="relative w-full max-w-sm mx-auto h-[480px] sm:h-[480px] rounded-3xl overflow-hidden shadow-2xl">
       {/* Clickable Background Media */}
       {mediaUrl && (
         <a
