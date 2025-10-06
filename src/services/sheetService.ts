@@ -40,11 +40,14 @@ export async function fetchSheetData(): Promise<DailyMessage[]> {
   try {
     console.log('Fetching live data from Netlify function...')
     
-    const response = await fetch('/.netlify/functions/fetchMessages', {
+    const timestamp = Date.now()
+    const response = await fetch(`/.netlify/functions/fetchMessages?t=${timestamp}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       }
     })
 

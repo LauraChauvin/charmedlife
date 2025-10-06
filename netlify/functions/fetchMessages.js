@@ -16,14 +16,17 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Fetch CSV data from Google Sheets
-    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-xYhLTBE31o3fcg-kghTOMwTIiy0vlIkHX8PoPkmcPKE1j4frp7kw6E0nmFNxG4oQ4Di9eJsnuduh/pub?output=csv'
+    // Fetch CSV data from Google Sheets with cache-busting
+    const timestamp = Date.now()
+    const csvUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-xYhLTBE31o3fcg-kghTOMwTIiy0vlIkHX8PoPkmcPKE1j4frp7kw6E0nmFNxG4oQ4Di9eJsnuduh/pub?output=csv&t=${timestamp}`
     
     const response = await fetch(csvUrl, {
       method: 'GET',
       headers: {
         'Accept': 'text/csv',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       }
     })
 
@@ -58,14 +61,31 @@ exports.handler = async (event, context) => {
         return messageObj
       })
       .filter(msg => {
-        // Check if message has a title using the actual column name
+        // Check if message has a title using the actual column name from your sheet
         const title = msg['Title/Headline (if applicable)'] || msg['Title / Quote'] || msg['Title'] || msg['Headline']
         return title && title.trim() !== ''
+      })
+      .map(msg => {
+        // Map the sheet columns to the expected format
+        return {
+          date: msg['Date (optional)'] || '',
+          type: msg['Type'] || '',
+          title: msg['Title/Headline (if applicable)'] || '',
+          message: msg['Body / Key Message (if applicable)'] || '',
+          mediaURL: msg['Image/Video Link'] || '',
+          cta: msg['External Link CTA Messaging (if applicable)'] || '',
+          link: msg['External Link (if applicable)'] || ''
+        }
       })
     
     return {
       statusCode: 200,
-      headers,
+      headers: {
+        ...headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
       body: JSON.stringify({ messages })
     }
     

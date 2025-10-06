@@ -10,6 +10,7 @@ export default function LandingPage() {
   const [dailyMessage, setDailyMessage] = useState<DailyMessage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   // Log token information for analytics
   useEffect(() => {
@@ -18,6 +19,28 @@ export default function LandingPage() {
       console.log('Token validation: Valid (all tokens accepted)')
     }
   }, [token])
+
+  // Refresh function to test live updates
+  const refreshMessage = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Fetch fresh data from Google Sheets
+      const messages = await fetchSheetData()
+      
+      // Get today's message based on the sheet data
+      const todaysMessage = getTodaysMessage(messages)
+      
+      setDailyMessage(todaysMessage)
+      setLastUpdated(new Date())
+      setLoading(false)
+    } catch (err) {
+      console.error('Error refreshing message:', err)
+      setError('Unable to refresh message. Please try again.')
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     const loadTodayMessage = async () => {
@@ -32,6 +55,7 @@ export default function LandingPage() {
         const todaysMessage = getTodaysMessage(messages)
         
         setDailyMessage(todaysMessage)
+        setLastUpdated(new Date())
         setLoading(false)
       } catch (err) {
         console.error('Error loading message:', err)
@@ -77,6 +101,25 @@ export default function LandingPage() {
           </div>
         </div>
       </header>
+
+      {/* Refresh Button for Testing Live Updates */}
+      <div className="flex justify-center py-4 bg-white/50 backdrop-blur-sm">
+        <button
+          onClick={refreshMessage}
+          disabled={loading}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
+        >
+          <svg className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          {loading ? 'Refreshing...' : 'Refresh Message'}
+        </button>
+        {lastUpdated && (
+          <span className="ml-4 text-sm text-gray-500 self-center">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </span>
+        )}
+      </div>
 
       {/* Professional Main Content */}
       <main className="flex-1 px-4 sm:px-6 lg:px-8 py-10 sm:py-14 max-w-4xl mx-auto w-full min-h-0">

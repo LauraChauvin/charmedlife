@@ -76,8 +76,8 @@ export default function MessageCard({
   const getMediaType = (url) => {
     if (!url || url.trim() === '') return 'fallback'
     
-    // If mediaType is already 'video', trust it
-    if (mediaType === 'video') return 'video'
+    // If mediaType indicates video, trust it
+    if (mediaType && mediaType.toLowerCase().includes('video')) return 'video'
     
     const lowerUrl = url.toLowerCase()
     
@@ -86,7 +86,8 @@ export default function MessageCard({
     
     // Check for YouTube or Cloudinary video URLs
     if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be') || 
-        lowerUrl.includes('cloudinary.com') || lowerUrl.includes('vimeo.com')) return 'video'
+        lowerUrl.includes('cloudinary.com') || lowerUrl.includes('vimeo.com') ||
+        lowerUrl.includes('drive.google.com')) return 'video'
     
     // Check for image extensions
     if (lowerUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) return 'image'
@@ -101,7 +102,9 @@ export default function MessageCard({
   console.log('Media detection:', {
     originalMediaType: mediaType,
     detectedMediaType: actualMediaType,
-    mediaUrl: mediaUrl
+    mediaUrl: mediaUrl,
+    isYouTube: mediaUrl && (mediaUrl.includes('youtube.com') || mediaUrl.includes('youtu.be')),
+    isGoogleDrive: mediaUrl && mediaUrl.includes('drive.google.com')
   });
   
   
@@ -124,9 +127,30 @@ export default function MessageCard({
       console.log('Rendering video:', mediaUrl);
       // For videos, use iframe for external links (YouTube, Google Drive) or video element for direct files
       if (mediaUrl.includes('youtube.com') || mediaUrl.includes('youtu.be') || mediaUrl.includes('drive.google.com')) {
+        // Convert YouTube URLs to embed format
+        let embedUrl = mediaUrl
+        if (mediaUrl.includes('youtube.com/shorts/')) {
+          // Convert YouTube Shorts to embed format
+          const videoId = mediaUrl.split('/shorts/')[1].split('?')[0]
+          embedUrl = `https://www.youtube.com/embed/${videoId}`
+        } else if (mediaUrl.includes('youtu.be/')) {
+          // Convert youtu.be to embed format
+          const videoId = mediaUrl.split('youtu.be/')[1].split('?')[0]
+          embedUrl = `https://www.youtube.com/embed/${videoId}`
+        } else if (mediaUrl.includes('youtube.com/watch?v=')) {
+          // Convert regular YouTube to embed format
+          const videoId = mediaUrl.split('v=')[1].split('&')[0]
+          embedUrl = `https://www.youtube.com/embed/${videoId}`
+        } else if (mediaUrl.includes('drive.google.com')) {
+          // Convert Google Drive to embed format
+          embedUrl = mediaUrl.replace('/view?usp=sharing', '/preview').replace('/view?usp=drive_link', '/preview')
+        }
+        
+        console.log('Converted video URL:', embedUrl);
+        
         return (
           <iframe
-            src={mediaUrl}
+            src={embedUrl}
             title={title}
             className="absolute inset-0 w-full h-full"
             allowFullScreen={true}
