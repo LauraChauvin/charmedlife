@@ -34,58 +34,38 @@ export default function MessageCard({
     setIsShareSupported('share' in navigator)
   }, [])
 
-  // Handle media URL changes and ensure proper clearing
+  // Handle media URL changes - simplified approach
   useEffect(() => {
     if (mediaUrl) {
-      // console.log('Media URL changed:', mediaUrl)
+      console.log('Media URL changed:', mediaUrl)
       setIsMediaLoading(true)
       setMediaLoadError(false)
-      // Clear any existing background content before loading new media
-      const backgroundContainer = document.querySelector('.background-media-container')
-      if (backgroundContainer) {
-        backgroundContainer.innerHTML = ''
-      }
-
-      // Set a timeout to hide loading animation after 10 seconds
+      
+      // Set a shorter timeout for loading
       const loadingTimeout = setTimeout(() => {
-        // console.log('Loading timeout reached, hiding loading animation')
+        console.log('Loading timeout reached, hiding loading animation')
         setIsMediaLoading(false)
-      }, 10000)
+      }, 3000) // Reduced to 3 seconds
 
       return () => clearTimeout(loadingTimeout)
+    } else {
+      console.log('No media URL provided')
+      setIsMediaLoading(false)
     }
   }, [mediaUrl])
 
-  // Handle media load events
+  // Handle media load events - simplified
   const handleMediaLoad = () => {
-    // console.log('Media loaded successfully')
+    console.log('✅ Media loaded successfully:', mediaUrl)
     setIsMediaLoading(false)
     setMediaLoadError(false)
   }
 
-  const handleMediaError = () => {
-    console.log('Media failed to load')
+  const handleMediaError = (error) => {
+    console.log('❌ Media failed to load:', mediaUrl, error)
     setIsMediaLoading(false)
     setMediaLoadError(true)
   }
-
-  // Set up global handlers for embedded content
-  useEffect(() => {
-    window.handleMediaLoad = handleMediaLoad
-    window.handleMediaError = handleMediaError
-    
-    // Also set up a fallback timer for iframes that don't trigger onload
-    const fallbackTimer = setTimeout(() => {
-      // console.log('Fallback timer: Assuming media loaded successfully')
-      setIsMediaLoading(false)
-    }, 5000) // 5 seconds fallback
-    
-    return () => {
-      clearTimeout(fallbackTimer)
-      delete window.handleMediaLoad
-      delete window.handleMediaError
-    }
-  }, [])
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -127,201 +107,126 @@ export default function MessageCard({
     window.open('https://www.zeffy.com/en-US/donation-form/pitchin-for-pads', '_blank', 'noopener,noreferrer')
   }
 
-  // Utility function to generate embed HTML for different media types
-  const getEmbedHTML = (url) => {
-    if (!url || url.trim() === '') return ''
-    
-    try {
-      // YouTube (Shorts or standard)
-      if (url.includes("youtube.com") || url.includes("youtu.be")) {
-        let videoId = ""
-        if (url.includes("/shorts/")) {
-          videoId = url.split("/shorts/")[1].split("?")[0]
-        } else if (url.includes("v=")) {
-          videoId = new URL(url).searchParams.get("v")
-        } else if (url.includes("youtu.be/")) {
-          videoId = url.split("youtu.be/")[1].split("?")[0]
-        }
-        
-        if (videoId) {
-          console.log('YouTube video ID extracted:', videoId)
-          return `
-            <iframe
-              src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}"
-              frameborder="0"
-              allow="autoplay; fullscreen"
-              allowfullscreen
-              class="absolute inset-0 w-full h-full object-cover"
-              onload="window.handleMediaLoad && window.handleMediaLoad()"
-              onerror="window.handleMediaError && window.handleMediaError()">
-            </iframe>`
-        }
-      }
-
-        // Google Drive (image or video) - always use preview endpoint
-        if (url.includes("drive.google.com")) {
-          const fileId = url.match(/[-\w]{25,}/)?.[0]
-          if (fileId) {
-            // console.log('Google Drive file detected:', fileId)
-            return `
-              <iframe
-                src="https://drive.google.com/file/d/${fileId}/preview"
-                frameborder="0"
-                allow="autoplay; fullscreen"
-                allowfullscreen
-                class="absolute inset-0 w-full h-full object-cover"
-                onload="window.handleMediaLoad && window.handleMediaLoad()"
-                onerror="window.handleMediaError && window.handleMediaError()">
-              </iframe>`
-          }
-        }
-
-      // Image URLs
-      if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-        return `
-          <img
-            src="${url}"
-            alt="Background image"
-            class="absolute inset-0 w-full h-full object-cover"
-            onload="window.handleMediaLoad && window.handleMediaLoad()"
-            onerror="window.handleMediaError && window.handleMediaError()"
-          />`
-      }
-
-      // Direct video files
-      if (url.match(/\.(mp4|mov|avi|webm|ogg)$/i)) {
-        return `
-          <video
-            src="${url}"
-            autoplay
-            muted
-            loop
-            playsInline
-            class="absolute inset-0 w-full h-full object-cover"
-            onload="window.handleMediaLoad && window.handleMediaLoad()"
-            onerror="window.handleMediaError && window.handleMediaError()">
-          </video>`
-      }
-
-      console.warn('Unsupported media type for URL:', url)
-      return `<p class="absolute inset-0 flex items-center justify-center text-white">Unsupported media link</p>`
-    } catch (error) {
-      console.error('Error generating embed HTML for URL:', url, error)
-      return `<div class="absolute inset-0 flex items-center justify-center bg-red-800 text-white">Error loading media</div>`
-    }
+  // Simplified media type detection
+  const isVideoUrl = (url) => {
+    if (!url) return false
+    return url.includes('youtube.com') || 
+           url.includes('youtu.be') || 
+           url.includes('vimeo.com') ||
+           url.includes('drive.google.com') ||
+           url.match(/\.(mp4|mov|avi|webm|ogg)$/i)
   }
-
-  // Determine media type - trust the mediaType prop if it's already set correctly
-  const getMediaType = (url) => {
-    if (!url || url.trim() === '') return 'fallback'
-    
-    // If mediaType indicates video, trust it
-    if (mediaType && mediaType.toLowerCase().includes('video')) return 'video'
-    
-    const lowerUrl = url.toLowerCase()
-    
-    // Check for video extensions
-    if (lowerUrl.match(/\.(mp4|mov|avi|webm|ogg)$/)) return 'video'
-    
-    // Check for YouTube or Cloudinary video URLs
-    if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be') || 
-        lowerUrl.includes('cloudinary.com') || lowerUrl.includes('vimeo.com')) return 'video'
-    
-    // Check for Google Drive - treat all as video since we use iframe preview
-    if (lowerUrl.includes('drive.google.com')) {
-      return 'video'
-    }
-    
-    // Check for image extensions
-    if (lowerUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) return 'image'
-    
-    // Default to image for other URLs
-    return 'image'
-  }
-
-  const actualMediaType = getMediaType(mediaUrl)
-  
-  // Debug logging for media detection (reduced)
-  // console.log('Media detection:', { originalMediaType: mediaType, detectedMediaType: actualMediaType, mediaUrl: mediaUrl });
   
   
-  // Render background media using the new embed HTML system
+  // Simplified media rendering - go back to reliable approach
   const renderBackgroundMedia = () => {
-    // console.log('Rendering background media:', { actualMediaType, mediaUrl, title });
+    console.log('Rendering background media:', { mediaUrl, mediaType, title });
     
     if (!mediaUrl || mediaUrl.trim() === '') {
-      // console.log('Using fallback image: /chimp.png');
+      console.log('No media URL, using fallback image: /chimp.png');
       return (
         <img
           src="/chimp.png"
           alt={title}
           className="absolute inset-0 w-full h-full object-cover"
+          onLoad={handleMediaLoad}
+          onError={handleMediaError}
         />
       )
     }
 
-    // Use the new getEmbedHTML utility function
-    const embedHTML = getEmbedHTML(mediaUrl)
-    // console.log('Generated embed HTML:', embedHTML);
-    
-    if (embedHTML) {
-      // Use dangerouslySetInnerHTML to inject the embed HTML
-      return (
-        <div 
-          dangerouslySetInnerHTML={{ __html: embedHTML }}
-          className="absolute inset-0 w-full h-full"
-          onLoad={() => {
-            // console.log('Container loaded, checking iframe status')
-            // Additional check for iframe loading
-            setTimeout(() => {
-              const iframe = document.querySelector('iframe')
-              if (iframe) {
-                // console.log('Iframe found, checking src:', iframe.src)
-                // For Google Drive previews, assume loaded after a short delay
-                setTimeout(() => {
-                  // console.log('Google Drive iframe should be loaded by now')
-                  setIsMediaLoading(false)
-                }, 2000)
-              }
-            }, 1000)
-          }}
-        />
-      )
+    // Check if it's a video URL
+    const isVideo = isVideoUrl(mediaUrl)
+
+    if (isVideo) {
+      // Handle video URLs with iframe
+      if (mediaUrl.includes('youtube.com') || mediaUrl.includes('youtu.be')) {
+        let videoId = ""
+        if (mediaUrl.includes("/shorts/")) {
+          videoId = mediaUrl.split("/shorts/")[1].split("?")[0]
+        } else if (mediaUrl.includes("v=")) {
+          videoId = new URL(mediaUrl).searchParams.get("v")
+        } else if (mediaUrl.includes("youtu.be/")) {
+          videoId = mediaUrl.split("youtu.be/")[1].split("?")[0]
+        }
+        
+        if (videoId) {
+          return (
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`}
+              frameBorder="0"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full object-cover"
+              onLoad={handleMediaLoad}
+              onError={handleMediaError}
+            />
+          )
+        }
+      }
+      
+      // Handle Google Drive videos
+      if (mediaUrl.includes("drive.google.com")) {
+        const fileId = mediaUrl.match(/[-\w]{25,}/)?.[0]
+        if (fileId) {
+          return (
+            <iframe
+              src={`https://drive.google.com/file/d/${fileId}/preview`}
+              frameBorder="0"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full object-cover"
+              onLoad={handleMediaLoad}
+              onError={handleMediaError}
+            />
+          )
+        }
+      }
+      
+      // Handle direct video files
+      if (mediaUrl.match(/\.(mp4|mov|avi|webm|ogg)$/i)) {
+        return (
+          <video
+            src={mediaUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+            onLoadedData={handleMediaLoad}
+            onError={handleMediaError}
+          />
+        )
+      }
     }
 
-    // Fallback to original image rendering if embed HTML generation fails
-    // console.log('Falling back to image rendering:', mediaUrl);
+    // Default to image rendering for everything else
+    console.log('Rendering as image:', mediaUrl);
     return (
       <img
         src={mediaUrl}
         alt={title}
         className="absolute inset-0 w-full h-full object-cover"
+        onLoad={handleMediaLoad}
+        onError={(e) => {
+          console.log('Image failed, trying fallback:', mediaUrl);
+          // Try fallback image if main image fails
+          e.target.src = '/chimp.png';
+          handleMediaLoad();
+        }}
       />
     )
   }
 
   return (
-    <div className="relative w-full h-screen sm:max-w-sm sm:mx-auto sm:h-[480px] sm:rounded-3xl overflow-hidden shadow-2xl">
+    <div className="relative w-full h-screen sm:max-w-sm sm:mx-auto sm:h-[480px] sm:rounded-3xl overflow-hidden sm:shadow-2xl">
       {/* Background Media Container */}
       <div className="background-media-container absolute inset-0">
-        {/* Clickable Background Media */}
-        {mediaUrl && (
-          <a
-            href={mediaUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute inset-0 z-10"
-          >
-            {renderBackgroundMedia()}
-          </a>
-        )}
-        
-        {/* Fallback image if no mediaUrl */}
-        {!mediaUrl && renderBackgroundMedia()}
+        {renderBackgroundMedia()}
       </div>
 
       {/* Loading Animation Overlay */}
-      {isMediaLoading && mediaUrl && (
+      {isMediaLoading && mediaUrl && mediaUrl.trim() !== '' && (
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 to-indigo-900/80 flex items-center justify-center z-20">
           <div className="text-center">
             <div className="relative">
@@ -352,12 +257,12 @@ export default function MessageCard({
       )}
       
       {/* Enhanced gradient overlay for readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70 z-10"></div>
       
       
       {/* Enhanced overlay content with animations */}
-      <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center">
-        <div className="bg-emerald-600/70 backdrop-blur-sm rounded-2xl p-6 sm:p-8 max-w-4xl">
+      <div className="relative z-20 flex flex-col items-center justify-center h-full px-6 text-center">
+        <div className="bg-black/20 rounded-2xl p-6 sm:p-8 max-w-4xl">
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white drop-shadow-lg animate-fadeInUp">
             {title.includes('Women We Love:') ? (
               <>
@@ -401,12 +306,11 @@ export default function MessageCard({
           ) : (
             <button
               onClick={handleShare}
-              className="inline-flex items-center bg-white/30 backdrop-blur-md border border-white/40 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-white/40 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
+              className="inline-flex items-center justify-center bg-white/20 hover:bg-white/30 border border-white/30 hover:border-white/50 text-white rounded-full w-12 h-12 hover:scale-110 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative shadow-lg hover:shadow-xl"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367-2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
               </svg>
-              Share Message
             </button>
           )}
         </div>

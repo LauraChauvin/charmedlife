@@ -138,7 +138,7 @@ function App() {
 
       <Header />
       
-      <main className="flex-1 flex items-center justify-center py-0 sm:py-8 relative z-10">
+      <main className="flex-1 flex py-0 sm:py-8 relative z-10 sm:items-center sm:justify-center sm:px-4">
         {message && (
           <MessageCard
             title={message.title}
