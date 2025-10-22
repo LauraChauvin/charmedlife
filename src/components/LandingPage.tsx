@@ -3,7 +3,18 @@ import { useParams } from 'react-router-dom'
 import MessageCard from './MessageCard'
 import Footer from './Footer'
 import TokenDebugger from './TokenDebugger'
-import { fetchSheetData, getTodaysMessage, DailyMessage } from '../services/sheetService'
+import { fetchSheetData, getDailyMessage, getMessageByToken } from '../services/sheetService'
+
+interface DailyMessage {
+  title: string
+  message: string
+  mediaUrl: string
+  mediaType: string
+  ctaText: string
+  ctaLink: string
+  link: string
+  token?: string
+}
 
 export default function LandingPage() {
   const { token } = useParams<{ token: string }>()
@@ -15,8 +26,7 @@ export default function LandingPage() {
   // Log token information for analytics
   useEffect(() => {
     if (token) {
-      console.log('LandingPage received token:', token)
-      console.log('Token validation: Valid (all tokens accepted)')
+      console.log('Token received:', token)
     }
   }, [token])
 
@@ -26,15 +36,30 @@ export default function LandingPage() {
       setLoading(true)
       setError(null)
       
-      // Fetch fresh data from Google Sheets
-      const messages = await fetchSheetData()
+      let message: DailyMessage
       
-      // Get today's message based on the sheet data
-      const todaysMessage = getTodaysMessage(messages)
+      if (token) {
+        // Fetch message by token
+        message = await getMessageByToken(token)
+      } else {
+        // Fetch today's message (fallback for no token)
+        message = await getDailyMessage()
+      }
       
-      setDailyMessage(todaysMessage)
+      setDailyMessage(message)
       setLastUpdated(new Date())
       setLoading(false)
+      
+      // Dispatch custom event for debug overlay
+      if (process.env.NODE_ENV === 'development') {
+        window.dispatchEvent(new CustomEvent('messageUpdate', {
+          detail: {
+            title: message.title,
+            message: message.message,
+            token: token
+          }
+        }))
+      }
     } catch (err) {
       console.error('Error refreshing message:', err)
       setError('Unable to refresh message. Please try again.')
@@ -43,40 +68,66 @@ export default function LandingPage() {
   }
 
   useEffect(() => {
-    const loadTodayMessage = async () => {
+    const loadMessage = async () => {
       try {
         setLoading(true)
         setError(null)
         
-        // Fetch data from Google Sheets
-        const messages = await fetchSheetData()
+        let message: DailyMessage
         
-        // Get today's message based on the sheet data
-        const todaysMessage = getTodaysMessage(messages)
+        if (token) {
+          // Fetch message by token
+          message = await getMessageByToken(token)
+        } else {
+          // Fetch today's message (fallback for no token)
+          message = await getDailyMessage()
+        }
         
-        setDailyMessage(todaysMessage)
+        setDailyMessage(message)
         setLastUpdated(new Date())
         setLoading(false)
+        
+        // Dispatch custom event for debug overlay
+        if (process.env.NODE_ENV === 'development') {
+          window.dispatchEvent(new CustomEvent('messageUpdate', {
+            detail: {
+              title: message.title,
+              message: message.message,
+              token: token
+            }
+          }))
+        }
       } catch (err) {
         console.error('Error loading message:', err)
-        setError('Unable to load today\'s message from Google Sheets. Please check your internet connection and try again later.')
+        setError('Unable to load message from Google Sheets. Please check your internet connection and try again later.')
         
         // Fallback message if sheet loading fails
-        setDailyMessage({
-          date: new Date().toISOString().split('T')[0],
-          type: 'Add text over image',
+        const fallbackMessage = token ? {
+          title: 'Charm Not Yet Active',
+          message: '✨ This charm is not yet active. Please contact support if you believe this is an error.',
+          mediaUrl: '/chimp.png',
+          mediaType: 'image',
+          ctaText: 'Contact Support',
+          ctaLink: 'https://www.FootForwardFund.org',
+          link: 'https://www.FootForwardFund.org',
+          token: token
+        } : {
           title: 'Inspiration for Today',
           message: 'Sometimes the best days start with a simple moment of inspiration.',
-          mediaURL: '/2.svg',
-          cta: 'Visit Our Site',
+          mediaUrl: '/2.svg',
+          mediaType: 'image',
+          ctaText: 'Visit Our Site',
+          ctaLink: 'https://www.FootForwardFund.org',
           link: 'https://www.FootForwardFund.org'
-        })
+        }
+        
+        setDailyMessage(fallbackMessage)
         setLoading(false)
       }
     }
 
-    loadTodayMessage()
-  }, [])
+    loadMessage()
+  }, [token])
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-50 safe-area-inset bg-white">
@@ -122,7 +173,7 @@ export default function LandingPage() {
       </div>
 
       {/* Professional Main Content */}
-      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-10 sm:py-14 max-w-4xl mx-auto w-full min-h-0">
+      <main className="flex-1 px-0 sm:px-4 lg:px-8 py-0 sm:py-10 max-w-4xl mx-auto w-full min-h-0">
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-2xl mb-6">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg"></div>
@@ -151,10 +202,10 @@ export default function LandingPage() {
             {dailyMessage && <MessageCard 
               title={dailyMessage.title}
               message={dailyMessage.message}
-              mediaUrl={dailyMessage.mediaURL}
-              mediaType={dailyMessage.type}
-              ctaText={dailyMessage.cta}
-              ctaLink={dailyMessage.link}
+              mediaUrl={dailyMessage.mediaUrl}
+              mediaType={dailyMessage.mediaType}
+              ctaText={dailyMessage.ctaText}
+              ctaLink={dailyMessage.ctaLink}
               link={dailyMessage.link}
               token={token} 
             />}
@@ -163,10 +214,10 @@ export default function LandingPage() {
           dailyMessage && <MessageCard 
             title={dailyMessage.title}
             message={dailyMessage.message}
-            mediaUrl={dailyMessage.mediaURL}
-            mediaType={dailyMessage.type}
-            ctaText={dailyMessage.cta}
-            ctaLink={dailyMessage.link}
+            mediaUrl={dailyMessage.mediaUrl}
+            mediaType={dailyMessage.mediaType}
+            ctaText={dailyMessage.ctaText}
+            ctaLink={dailyMessage.ctaLink}
             link={dailyMessage.link}
             token={token} 
           />

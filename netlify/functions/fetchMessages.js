@@ -74,7 +74,8 @@ exports.handler = async (event, context) => {
           message: msg['Body / Key Message (if applicable)'] || '',
           mediaURL: msg['Image/Video Link'] || '',
           cta: msg['External Link CTA Messaging (if applicable)'] || '',
-          link: msg['External Link (if applicable)'] || ''
+          link: msg['External Link (if applicable)'] || '',
+          token: msg['Token'] || ''
         }
       })
     

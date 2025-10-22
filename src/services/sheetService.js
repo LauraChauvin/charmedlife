@@ -57,13 +57,23 @@ function parseCsvLine(line) {
 
 /**
  * Fetch the live spreadsheet data
+ * @param {string} token Optional token for filtering messages
  * @returns {Promise<Array>} Promise resolving to an array of message objects
  */
-export async function fetchSheetData() {
+export async function fetchSheetData(token) {
   try {
     const response = await fetch(SHEET_URL)
     const csvText = await response.text()
     const messages = parseCsvToJson(csvText)
+    
+    // If token is provided, filter messages by token
+    if (token) {
+      console.log('Filtering messages by token:', token)
+      const tokenMessages = messages.filter(msg => msg.Token === token)
+      console.log('Token-filtered messages found:', tokenMessages.length)
+      return tokenMessages
+    }
+    
     return messages
   } catch (error) {
     console.error('Error fetching Google Sheets data:', error)
@@ -110,6 +120,52 @@ function getDayOfYear() {
 }
 
 /**
+ * Get a specific message by token
+ * @param {string} token The token to search for
+ * @returns {Promise<Object>} Message object with normalized fields
+ */
+export async function getMessageByToken(token) {
+  try {
+    console.log('Fetching message for token:', token)
+    
+    // Fetch all messages filtered by token
+    const tokenMessages = await fetchSheetData(token)
+    
+    if (tokenMessages.length > 0) {
+      console.log('Found message for token:', token, 'Title:', tokenMessages[0]['Title/Headline (if applicable)'])
+      return mapMessageToTemplate(tokenMessages[0])
+    }
+    
+    // No message found for this token
+    console.warn('No message found for token:', token)
+    return getTokenFallbackMessage(token)
+    
+  } catch (error) {
+    console.error('Error fetching message by token:', error)
+    return getTokenFallbackMessage(token)
+  }
+}
+
+/**
+ * Get fallback message for invalid/unknown tokens
+ * @param {string} token The token that wasn't found
+ * @returns {Object} Fallback message object
+ */
+function getTokenFallbackMessage(token) {
+  console.log('Creating fallback message for token:', token)
+  return mapMessageToTemplate({
+    Date: new Date().toISOString().split('T')[0],
+    Type: 'Add text over image',
+    'Title/Headline (if applicable)': 'Charm Not Yet Active',
+    'Body / Key Message (if applicable)': '✨ This charm is not yet active. Please contact support if you believe this is an error.',
+    'Image/Video Link': '/chimp.png',
+    'External Link CTA Messaging (if applicable)': 'Contact Support',
+    'External Link (if applicable)': 'https://www.FootForwardFund.org',
+    Token: token
+  })
+}
+
+/**
  * Load daily message from live Google Sheet
  * 1. Try exact date match first
  * 2. Fall back to rotation based on day of year
@@ -118,10 +174,9 @@ function getDayOfYear() {
  */
 export async function getDailyMessage() {
   try {
-    console.log('Fetching data from Google Sheets...')
+    console.log('Fetching daily message from Google Sheets...')
     const messages = await fetchSheetData()
-    console.log('Raw messages from sheet:', messages.length, 'messages found')
-    console.log('First few messages:', messages.slice(0, 3))
+    console.log('Found', messages.length, 'messages')
     
     if (!messages || messages.length === 0) {
       throw new Error('No messages found in spreadsheet')
@@ -133,8 +188,6 @@ export async function getDailyMessage() {
       return title && title.trim() !== ''
     })
     
-    console.log('Valid messages with titles:', validMessages.length)
-    
     if (validMessages.length === 0) {
       throw new Error('No valid messages found')
     }
@@ -142,10 +195,8 @@ export async function getDailyMessage() {
     // 1. Try to match today's exact date in US EST
     const todayMessage = validMessages.find(row => isToday(row.Date))
     if (todayMessage) {
-      console.log('Found message for today:', todayMessage)
-      const mapped = mapMessageToTemplate(todayMessage)
-      console.log('Mapped today message:', mapped)
-      return mapped
+      console.log('Found message for today:', todayMessage['Title/Headline (if applicable)'])
+      return mapMessageToTemplate(todayMessage)
     }
     
     // 2. Otherwise, rotate based on day of year
@@ -153,10 +204,8 @@ export async function getDailyMessage() {
     const rotationIndex = dayOfYear % validMessages.length
     const rotatingMessage = validMessages[rotationIndex]
     
-    console.log('Using rotating message for day', dayOfYear, ':', rotatingMessage)
-    const mappedMessage = mapMessageToTemplate(rotatingMessage)
-    console.log('Mapped rotating message:', mappedMessage)
-    return mappedMessage
+    console.log('Using rotating message for day', dayOfYear)
+    return mapMessageToTemplate(rotatingMessage)
     
   } catch (error) {
     console.error('Error in getDailyMessage:', error)
@@ -179,8 +228,6 @@ export async function getDailyMessage() {
  * @returns {Object} Normalized message object for the MessageCard component
  */
 function mapMessageToTemplate(row) {
-  console.log('Mapping row data:', row)
-  
   // Map various possible column names to our expected fields
   const title = row['Title/Headline (if applicable)'] || row['Title / Quote'] || row['Title'] || row['Headline'] || 'Daily Inspiration'
   const message = row['Body / Key Message (if applicable)'] || row['Message'] || row['Quote'] || row['Text'] || 'Sometimes the best days start with a simple moment of inspiration.'
@@ -189,16 +236,13 @@ function mapMessageToTemplate(row) {
   const ctaText = row['External Link CTA Messaging (if applicable)'] || row['CTA'] || row['Call to Action'] || row['Button Text'] || ''
   const ctaLink = row['External Link (if applicable)'] || row['Link'] || row['CTA Link'] || row['Button Link'] || ''
   
-  console.log('Extracted fields:', { title, message, mediaUrl, mediaType, ctaText, ctaLink })
-  
   // Determine the final media type
   const finalMediaType = getMediaType(mediaType)
   
   // Convert Google Drive URLs to appropriate URLs based on media type
   const processedMediaUrl = convertGoogleDriveUrl(mediaUrl, finalMediaType)
-  console.log('URL conversion:', { original: mediaUrl, processed: processedMediaUrl, mediaType: finalMediaType })
   
-  const result = {
+  return {
     title: title,
     message: message,
     mediaType: finalMediaType,
@@ -209,9 +253,6 @@ function mapMessageToTemplate(row) {
     link: ctaLink, // Use ctaLink as the main link for now
     accent: 'Daily Inspiration'
   }
-  
-  console.log('Final mapped result:', result)
-  return result
 }
 
 /**
@@ -239,13 +280,8 @@ function convertGoogleDriveUrl(url, mediaType = 'image') {
     if (fileIdMatch) {
       const fileId = fileIdMatch[1]
       
-      // For videos, use the embed URL instead of direct view
-      if (mediaType === 'video') {
-        return `https://drive.google.com/file/d/${fileId}/preview`
-      } else {
-        // For images, use the direct view URL
-        return `https://drive.google.com/uc?export=view&id=${fileId}`
-      }
+      // For both videos and images, use the preview endpoint (more reliable)
+      return `https://drive.google.com/file/d/${fileId}/preview`
     }
   }
   

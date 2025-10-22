@@ -19,7 +19,7 @@ function App() {
         setLoading(true)
         setError(null)
         const dailyMessage = await getDailyMessage()
-        console.log('Fetched daily message:', dailyMessage)
+        // console.log('Fetched daily message:', dailyMessage)
         setMessage(dailyMessage)
       } catch (err) {
         console.error('Failed to load daily message:', err)
@@ -105,7 +105,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[#f8f9fa] flex flex-col relative overflow-hidden safe-area-inset">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Flowing Strings/Threads */}
@@ -138,7 +138,7 @@ function App() {
 
       <Header />
       
-      <main className="flex-1 flex items-center justify-center py-8 relative z-10">
+      <main className="flex-1 flex items-center justify-center py-0 sm:py-8 relative z-10">
         {message && (
           <MessageCard
             title={message.title}
