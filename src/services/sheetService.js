@@ -93,14 +93,16 @@ function getMediaType(typeValue) {
 }
 
 /**
- * Check if a date string matches today's date (US EST)
+ * Check if a date string matches today's date (US Eastern Time)
  * @param {string} dateStr Date string in YYYY-MM-DD format 
  * @returns {boolean}
  */
 function isToday(dateStr) {
   try {
-    const today = new Date()
-    const todayStr = today.toISOString().split('T')[0] // YYYY-MM-DD format
+    // Get current date in US Eastern Time
+    const now = new Date()
+    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}))
+    const todayStr = easternTime.toISOString().split('T')[0] // YYYY-MM-DD format
     return dateStr === todayStr
   } catch (error) {
     return false
@@ -108,13 +110,15 @@ function isToday(dateStr) {
 }
 
 /**
- * Get day of year for rotation fallback
+ * Get day of year for rotation fallback (US Eastern Time)
  * @returns {number} Day of year (1-365/366)
  */
 function getDayOfYear() {
+  // Get current date in US Eastern Time
   const now = new Date()
-  const start = new Date(now.getFullYear(), 0, 0)
-  const diff = now - start
+  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}))
+  const start = new Date(easternTime.getFullYear(), 0, 0)
+  const diff = easternTime - start
   const oneDay = 1000 * 60 * 60 * 24
   return Math.floor(diff / oneDay)
 }
@@ -228,6 +232,10 @@ export async function getDailyMessage() {
  * @returns {Object} Normalized message object for the MessageCard component
  */
 function mapMessageToTemplate(row) {
+  // Debug: Log the raw row data to see what fields are available
+  console.log('Raw row data:', JSON.stringify(row, null, 2))
+  console.log('Available fields:', Object.keys(row))
+  
   // Map various possible column names to our expected fields
   const title = row['Title/Headline (if applicable)'] || row['Title / Quote'] || row['Title'] || row['Headline'] || 'Daily Inspiration'
   const message = row['Body / Key Message (if applicable)'] || row['Message'] || row['Quote'] || row['Text'] || 'Sometimes the best days start with a simple moment of inspiration.'
@@ -235,6 +243,8 @@ function mapMessageToTemplate(row) {
   const mediaType = row['Type'] || row['Media Type'] || 'image'
   const ctaText = row['External Link CTA Messaging (if applicable)'] || row['CTA'] || row['Call to Action'] || row['Button Text'] || ''
   const ctaLink = row['External Link (if applicable)'] || row['Link'] || row['CTA Link'] || row['Button Link'] || ''
+  
+  console.log('Mapped values:', JSON.stringify({ title, message, mediaUrl, mediaType, ctaText, ctaLink }, null, 2))
   
   // Determine the final media type
   const finalMediaType = getMediaType(mediaType)
