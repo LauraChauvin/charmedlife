@@ -1,5 +1,11 @@
-// Source URL for Google Sheets CSV data
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-xYhLTBE31o3fcg-kghTOMwTIiy0vlIkHX8PoPkmcPKE1j4frp7kw6E0nmFNxG4oQ4Di9eJsnuduh/pub?output=csv"
+// Local CSV data located in the public folder
+const SHEET_FILENAME = 'Bracelet Content - Sheet1.csv'
+
+function getSheetUrl() {
+  const baseUrl = import.meta.env?.BASE_URL ?? '/'
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+  return `${normalizedBase}${encodeURI(SHEET_FILENAME)}`
+}
 
 /**
  * Parse CSV text into JSON objects with proper handling of quoted fields
@@ -62,7 +68,18 @@ function parseCsvLine(line) {
  */
 export async function fetchSheetData(token) {
   try {
-    const response = await fetch(SHEET_URL)
+    const sheetUrl = getSheetUrl()
+    const response = await fetch(sheetUrl, {
+      cache: 'no-cache',
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to load local sheet from ${sheetUrl}`)
+    }
+
     const csvText = await response.text()
     const messages = parseCsvToJson(csvText)
     
@@ -76,7 +93,7 @@ export async function fetchSheetData(token) {
     
     return messages
   } catch (error) {
-    console.error('Error fetching Google Sheets data:', error)
+    console.error('Error fetching local sheet data:', error)
     throw error
   }
 }
@@ -239,7 +256,14 @@ function mapMessageToTemplate(row) {
   // Map various possible column names to our expected fields
   const title = row['Title/Headline (if applicable)'] || row['Title / Quote'] || row['Title'] || row['Headline'] || 'Daily Inspiration'
   const message = row['Body / Key Message (if applicable)'] || row['Message'] || row['Quote'] || row['Text'] || 'Sometimes the best days start with a simple moment of inspiration.'
-  const mediaUrl = row['Image/Video Link'] || row['MediaURL'] || row['Media URL'] || row['Image Link'] || '/chimp.png'
+  const mediaUrl =
+    row['Image/Video Link'] ||
+    row['Image or Video'] ||
+    row['MediaURL'] ||
+    row['Media URL'] ||
+    row['Image Link'] ||
+    row['Image'] ||
+    '/chimp.png'
   const mediaType = row['Type'] || row['Media Type'] || 'image'
   const ctaText = row['External Link CTA Messaging (if applicable)'] || row['CTA'] || row['Call to Action'] || row['Button Text'] || ''
   const ctaLink = row['External Link (if applicable)'] || row['Link'] || row['CTA Link'] || row['Button Link'] || ''
@@ -273,20 +297,36 @@ function mapMessageToTemplate(row) {
  */
 function convertGoogleDriveUrl(url, mediaType = 'image') {
   if (!url || url === '/chimp.png') return '/chimp.png'
-  
+  const trimmedUrl = url.trim()
+  if (trimmedUrl === '') return '/chimp.png'
+
+  // Allow data URIs, absolute URLs, and already-prefixed paths to pass through
+  if (/^data:/i.test(trimmedUrl)) {
+    return trimmedUrl
+  }
+
+  if (trimmedUrl.startsWith('/')) {
+    return trimmedUrl
+  }
+
+  // Handle relative asset paths inside the public directory
+  if (!/^[a-zA-Z]+:\/\//.test(trimmedUrl)) {
+    return `/${trimmedUrl.replace(/^\/+/, '')}`
+  }
+
   // If it's already a direct image URL, return as-is
-  if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
-    return url
+  if (trimmedUrl.match(/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|mov|ogg)$/i)) {
+    return trimmedUrl
   }
   
   // If it's a YouTube URL, return as-is
-  if (url.includes('youtube.com') || url.includes('youtu.be')) {
-    return url
+  if (trimmedUrl.includes('youtube.com') || trimmedUrl.includes('youtu.be')) {
+    return trimmedUrl
   }
   
   // Convert Google Drive file view URL
-  if (url.includes('drive.google.com/file/d/')) {
-    const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/)
+  if (trimmedUrl.includes('drive.google.com/file/d/')) {
+    const fileIdMatch = trimmedUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/)
     if (fileIdMatch) {
       const fileId = fileIdMatch[1]
       
@@ -296,13 +336,13 @@ function convertGoogleDriveUrl(url, mediaType = 'image') {
   }
   
   // If it's already a direct Google Drive image URL, return as-is
-  if (url.includes('uc?export=view')) {
-    return url
+  if (trimmedUrl.includes('uc?export=view')) {
+    return trimmedUrl
   }
   
   // If it's already a Google Drive preview URL, return as-is
-  if (url.includes('drive.google.com/file/d/') && url.includes('/preview')) {
-    return url
+  if (trimmedUrl.includes('drive.google.com/file/d/') && trimmedUrl.includes('/preview')) {
+    return trimmedUrl
   }
   
   // Fallback to chimp.png for any other URLs
