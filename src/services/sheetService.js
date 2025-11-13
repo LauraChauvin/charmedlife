@@ -1,10 +1,40 @@
 // Local CSV data located in the public folder
 const SHEET_FILENAME = 'Bracelet Content - Sheet1.csv'
+const ABOUT_PAGE_URL = 'https://www.footforwardfund.org/about.html'
+const GIVING_PAGE_URL = 'https://www.footforwardfund.org/give.html'
+const LEARN_MORE_TEXT = 'Learn More'
+const ABOUT_CTA_TEXT = 'Get to Know Her Best Foot Forward'
 
 function getSheetUrl() {
   const baseUrl = import.meta.env?.BASE_URL ?? '/'
   const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
   return `${normalizedBase}${encodeURI(SHEET_FILENAME)}`
+}
+
+function getEasternNow() {
+  const now = new Date()
+  return new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }))
+}
+
+function normalizeString(value) {
+  if (typeof value !== 'string') return ''
+  return value.trim().replace(/\\+$/, '')
+}
+
+function isGivingMessage(row) {
+  const fieldsToCheck = [
+    row['Type'],
+    row['Title/Headline (if applicable)'],
+    row['Body / Key Message (if applicable)'],
+    row['External Link (if applicable)'],
+    row['External Link']
+  ]
+
+  return fieldsToCheck.some(field => {
+    const text = normalizeString(field)
+    if (!text) return false
+    return /(give|donat|support|charit)/i.test(text)
+  })
 }
 
 /**
@@ -116,9 +146,7 @@ function getMediaType(typeValue) {
  */
 function isToday(dateStr) {
   try {
-    // Get current date in US Eastern Time
-    const now = new Date()
-    const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}))
+    const easternTime = getEasternNow()
     const todayStr = easternTime.toISOString().split('T')[0] // YYYY-MM-DD format
     return dateStr === todayStr
   } catch (error) {
@@ -131,9 +159,7 @@ function isToday(dateStr) {
  * @returns {number} Day of year (1-365/366)
  */
 function getDayOfYear() {
-  // Get current date in US Eastern Time
-  const now = new Date()
-  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}))
+  const easternTime = getEasternNow()
   const start = new Date(easternTime.getFullYear(), 0, 0)
   const diff = easternTime - start
   const oneDay = 1000 * 60 * 60 * 24
@@ -205,8 +231,12 @@ export async function getDailyMessage() {
     
     // Filter out messages without titles
     const validMessages = messages.filter(msg => {
-      const title = msg['Title/Headline (if applicable)'] || msg['Title / Quote'] || msg['Title'] || msg['Headline']
-      return title && title.trim() !== ''
+      const title =
+        normalizeString(msg['Title/Headline (if applicable)']) ||
+        normalizeString(msg['Title / Quote']) ||
+        normalizeString(msg['Title']) ||
+        normalizeString(msg['Headline'])
+      return title !== ''
     })
     
     if (validMessages.length === 0) {
@@ -220,8 +250,22 @@ export async function getDailyMessage() {
       return mapMessageToTemplate(todayMessage)
     }
     
-    // 2. Otherwise, rotate based on day of year
+    const easternNow = getEasternNow()
+    const dayOfMonth = easternNow.getDate()
     const dayOfYear = getDayOfYear()
+
+    // 2. On giving days (2nd and 16th), prioritize giving-focused messages
+    if ([2, 16].includes(dayOfMonth)) {
+      const givingMessages = validMessages.filter(isGivingMessage)
+      if (givingMessages.length > 0) {
+        const givingIndex = dayOfYear % givingMessages.length
+        const givingMessage = givingMessages[givingIndex]
+        console.log('Using giving message for day', dayOfMonth)
+        return mapMessageToTemplate(givingMessage)
+      }
+    }
+
+    // 3. Otherwise, rotate based on day of year
     const rotationIndex = dayOfYear % validMessages.length
     const rotatingMessage = validMessages[rotationIndex]
     
@@ -254,27 +298,76 @@ function mapMessageToTemplate(row) {
   console.log('Available fields:', Object.keys(row))
   
   // Map various possible column names to our expected fields
-  const title = row['Title/Headline (if applicable)'] || row['Title / Quote'] || row['Title'] || row['Headline'] || 'Daily Inspiration'
-  const message = row['Body / Key Message (if applicable)'] || row['Message'] || row['Quote'] || row['Text'] || 'Sometimes the best days start with a simple moment of inspiration.'
+  const title =
+    normalizeString(row['Title/Headline (if applicable)']) ||
+    normalizeString(row['Title / Quote']) ||
+    normalizeString(row['Title']) ||
+    normalizeString(row['Headline']) ||
+    'Daily Inspiration'
+
+  const message =
+    normalizeString(row['Body / Key Message (if applicable)']) ||
+    normalizeString(row['Message']) ||
+    normalizeString(row['Quote']) ||
+    normalizeString(row['Text']) ||
+    'Sometimes the best days start with a simple moment of inspiration.'
+
   const mediaUrl =
-    row['Image/Video Link'] ||
-    row['Image or Video'] ||
-    row['MediaURL'] ||
-    row['Media URL'] ||
-    row['Image Link'] ||
-    row['Image'] ||
+    normalizeString(row['Image/Video Link']) ||
+    normalizeString(row['Image or Video']) ||
+    normalizeString(row['MediaURL']) ||
+    normalizeString(row['Media URL']) ||
+    normalizeString(row['Image Link']) ||
+    normalizeString(row['Image']) ||
     '/chimp.png'
-  const mediaType = row['Type'] || row['Media Type'] || 'image'
-  const ctaText = row['External Link CTA Messaging (if applicable)'] || row['CTA'] || row['Call to Action'] || row['Button Text'] || ''
-  const ctaLink = row['External Link (if applicable)'] || row['Link'] || row['CTA Link'] || row['Button Link'] || ''
-  
-  console.log('Mapped values:', JSON.stringify({ title, message, mediaUrl, mediaType, ctaText, ctaLink }, null, 2))
+
+  const mediaType =
+    normalizeString(row['Type']) ||
+    normalizeString(row['Media Type']) ||
+    'image'
+
+  let ctaText =
+    normalizeString(row['External Link CTA Messaging (if applicable)']) ||
+    normalizeString(row['CTA']) ||
+    normalizeString(row['Call to Action']) ||
+    normalizeString(row['Button Text'])
+
+  let ctaLink =
+    normalizeString(row['External Link (if applicable)']) ||
+    normalizeString(row['External Link']) ||
+    normalizeString(row['Link']) ||
+    normalizeString(row['CTA Link']) ||
+    normalizeString(row['Button Link'])
+
+  const givingMessage = isGivingMessage(row)
+  const hasExternalLink = Boolean(ctaLink)
+
+  if (!ctaLink) {
+    ctaLink = givingMessage ? GIVING_PAGE_URL : ABOUT_PAGE_URL
+  }
+
+  if (!ctaText) {
+    if (givingMessage || hasExternalLink || ctaLink !== ABOUT_PAGE_URL) {
+      ctaText = LEARN_MORE_TEXT
+    } else {
+      ctaText = ABOUT_CTA_TEXT
+    }
+  }
   
   // Determine the final media type
   const finalMediaType = getMediaType(mediaType)
   
   // Convert Google Drive URLs to appropriate URLs based on media type
   const processedMediaUrl = convertGoogleDriveUrl(mediaUrl, finalMediaType)
+  
+  console.log(
+    'Mapped values:',
+    JSON.stringify(
+      { title, message, mediaUrl: processedMediaUrl, mediaType: finalMediaType, ctaText, ctaLink, givingMessage },
+      null,
+      2
+    )
+  )
   
   return {
     title: title,
