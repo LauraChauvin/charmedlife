@@ -13,6 +13,7 @@ interface DailyMessage {
   ctaText: string
   ctaLink: string
   link: string
+  hasActualCtaData?: boolean
   token?: string
 }
 
@@ -110,6 +111,7 @@ export default function LandingPage() {
           ctaText: 'Contact Support',
           ctaLink: 'https://www.FootForwardFund.org',
           link: 'https://www.FootForwardFund.org',
+          hasActualCtaData: true,
           token: token
         } : {
           title: 'Inspiration for Today',
@@ -118,7 +120,8 @@ export default function LandingPage() {
           mediaType: 'image',
           ctaText: 'Visit Our Site',
           ctaLink: 'https://www.FootForwardFund.org',
-          link: 'https://www.FootForwardFund.org'
+          link: 'https://www.FootForwardFund.org',
+          hasActualCtaData: true
         }
         
         setDailyMessage(fallbackMessage)
@@ -207,6 +210,7 @@ export default function LandingPage() {
               ctaText={dailyMessage.ctaText}
               ctaLink={dailyMessage.ctaLink}
               link={dailyMessage.link}
+              hasActualCtaData={dailyMessage.hasActualCtaData}
               token={token} 
             />}
           </div>
@@ -219,6 +223,7 @@ export default function LandingPage() {
             ctaText={dailyMessage.ctaText}
             ctaLink={dailyMessage.ctaLink}
             link={dailyMessage.link}
+            hasActualCtaData={dailyMessage.hasActualCtaData}
             token={token} 
           />
         )}

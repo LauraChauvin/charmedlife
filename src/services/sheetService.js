@@ -326,21 +326,28 @@ function mapMessageToTemplate(row) {
     normalizeString(row['Media Type']) ||
     'image'
 
-  let ctaText =
+  // Get raw values first to check if they actually exist
+  const rawCtaText =
     normalizeString(row['External Link CTA Messaging (if applicable)']) ||
     normalizeString(row['CTA']) ||
     normalizeString(row['Call to Action']) ||
-    normalizeString(row['Button Text'])
+    normalizeString(row['Button Text']) ||
+    ''
 
-  let ctaLink =
+  const rawCtaLink =
     normalizeString(row['External Link (if applicable)']) ||
     normalizeString(row['External Link']) ||
     normalizeString(row['Link']) ||
     normalizeString(row['CTA Link']) ||
-    normalizeString(row['Button Link'])
+    normalizeString(row['Button Link']) ||
+    ''
 
   const givingMessage = isGivingMessage(row)
-  const hasExternalLink = Boolean(ctaLink)
+  const hasExternalLink = Boolean(rawCtaLink)
+
+  // Only set defaults if there's no actual data
+  let ctaText = rawCtaText
+  let ctaLink = rawCtaLink
 
   if (!ctaLink) {
     ctaLink = givingMessage ? GIVING_PAGE_URL : ABOUT_PAGE_URL
@@ -353,6 +360,9 @@ function mapMessageToTemplate(row) {
       ctaText = ABOUT_CTA_TEXT
     }
   }
+  
+  // Track if we have actual data (not defaults) for the button logic
+  const hasActualCtaData = Boolean(rawCtaText || rawCtaLink)
   
   // Determine the final media type
   const finalMediaType = getMediaType(mediaType)
@@ -378,6 +388,7 @@ function mapMessageToTemplate(row) {
     ctaText: ctaText,
     ctaLink: ctaLink,
     link: ctaLink, // Use ctaLink as the main link for now
+    hasActualCtaData: hasActualCtaData, // Flag to indicate if we have real CTA data (not defaults)
     accent: 'Daily Inspiration'
   }
 }
@@ -438,6 +449,12 @@ function convertGoogleDriveUrl(url, mediaType = 'image') {
     return trimmedUrl
   }
   
-  // Fallback to chimp.png for any other URLs
+  // If it looks like a valid HTTP/HTTPS URL, return it as-is (don't fallback to chimp.png)
+  // This handles other image hosting services, CDNs, etc.
+  if (/^https?:\/\//i.test(trimmedUrl)) {
+    return trimmedUrl
+  }
+  
+  // Only fallback to chimp.png if the URL is clearly invalid
   return '/chimp.png'
 }

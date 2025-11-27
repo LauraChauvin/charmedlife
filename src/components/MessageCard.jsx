@@ -11,6 +11,7 @@ export default function MessageCard({
   ctaLink,
   accent,
   link, // New prop for optional link URL from Google Sheet
+  hasActualCtaData = false, // Flag to indicate if we have real CTA data (not defaults)
 }) {
   // Debug logging (reduced)
   // console.log('MessageCard props:', { title, message, mediaUrl, mediaType, ctaText, link });
@@ -259,6 +260,16 @@ export default function MessageCard({
       {/* Enhanced gradient overlay for readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70 z-10"></div>
       
+      {/* Share Button - Top Right */}
+      <button
+        onClick={handleShare}
+        className="absolute top-4 right-4 z-30 inline-flex items-center justify-center bg-white/20 hover:bg-white/30 border border-white/30 hover:border-white/50 text-white rounded-full w-12 h-12 hover:scale-110 transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm"
+        aria-label="Share"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367-2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+        </svg>
+      </button>
       
       {/* Enhanced overlay content with animations */}
       <div className="relative z-20 flex flex-col items-center justify-center h-full px-6 text-center">
@@ -278,7 +289,7 @@ export default function MessageCard({
           </p>
         </div>
         
-        {/* Single CTA Button - Show donate button for donation messages, regular CTA for others, or share button as fallback */}
+        {/* Single CTA Button - Show donate button for donation messages, regular CTA for others */}
         <div className="mt-8">
           {(isDonateDay() || isDonationMessage()) ? (
             <button
@@ -303,16 +314,7 @@ export default function MessageCard({
               </svg>
               {ctaText}
             </a>
-          ) : (
-            <button
-              onClick={handleShare}
-              className="inline-flex items-center justify-center bg-white/20 hover:bg-white/30 border border-white/30 hover:border-white/50 text-white rounded-full w-12 h-12 hover:scale-110 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative shadow-lg hover:shadow-xl"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367-2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-              </svg>
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
