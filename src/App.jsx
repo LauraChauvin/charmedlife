@@ -29,7 +29,7 @@ function App() {
           title: "Inspiration for Today",
           message: "Sometimes the best days start with a simple moment of inspiration.",
           mediaType: "image",
-          mediaUrl: "/chimp.png",
+          mediaUrl: "/defaultimage.png",
           ctaText: "Visit Our Site",
           ctaLink: "https://www.FootForwardFund.org",
           accent: "Purpose"

@@ -205,7 +205,7 @@ function getTokenFallbackMessage(token) {
     Type: 'Add text over image',
     'Title/Headline (if applicable)': 'Charm Not Yet Active',
     'Body / Key Message (if applicable)': '✨ This charm is not yet active. Please contact support if you believe this is an error.',
-    'Image/Video Link': '/chimp.png',
+    'Image/Video Link': '/defaultimage.png',
     'External Link CTA Messaging (if applicable)': 'Contact Support',
     'External Link (if applicable)': 'https://www.FootForwardFund.org',
     Token: token
@@ -280,7 +280,7 @@ export async function getDailyMessage() {
       Type: 'Daily Message',
       Title: 'Inspiration for Today',
       Message: 'Sometimes the best days start with a simple moment of inspiration.',
-      MediaURL: '/chimp.png',
+      MediaURL: '/defaultimage.png',
       CTA: 'Visit Our Site',
       Link: 'https://www.FootForwardFund.org'
     })
@@ -312,19 +312,50 @@ function mapMessageToTemplate(row) {
     normalizeString(row['Text']) ||
     'Sometimes the best days start with a simple moment of inspiration.'
 
-  const mediaUrl =
-    normalizeString(row['Image/Video Link']) ||
-    normalizeString(row['Image or Video']) ||
-    normalizeString(row['MediaURL']) ||
-    normalizeString(row['Media URL']) ||
-    normalizeString(row['Image Link']) ||
-    normalizeString(row['Image']) ||
-    '/chimp.png'
+  // Read the values
+  let rawMedia = row["Image or Video"]?.trim() || ""
+  let external = row["External Link (if applicable)"]?.trim() || ""
 
-  const mediaType =
-    normalizeString(row['Type']) ||
-    normalizeString(row['Media Type']) ||
-    'image'
+  // Detect if external link is a valid URL
+  const isValidUrl = (url) => /^https?:\/\//i.test(url)
+
+  // Determine media URL and type
+  let processedMediaUrl = ""
+  let finalMediaType = "image"
+
+  // Check if Image or Video is "Pending"
+  if (rawMedia && rawMedia.toLowerCase() === "pending") {
+    // Rule: If Pending → use External Link
+    if (external && isValidUrl(external)) {
+      processedMediaUrl = external
+      finalMediaType = "external"
+      console.log("Using external link because media was Pending")
+    } else {
+      // External link missing or invalid → fallback
+      processedMediaUrl = "/defaultimage.png"
+      finalMediaType = "image"
+      console.log("External link failed → Using defaultimage.png")
+    }
+  }
+  // Rule A: If Image/Video is a real link, use it
+  else if (rawMedia && rawMedia.toLowerCase() !== "pending" && isValidUrl(rawMedia)) {
+    // Pass through the Drive converter
+    processedMediaUrl = convertGoogleDriveUrl(rawMedia)
+    
+    // Determine media type based on processed URL
+    if (/youtube\.com|youtu\.be/.test(processedMediaUrl)) {
+      finalMediaType = "video"
+    } else if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(processedMediaUrl)) {
+      finalMediaType = "image"
+    } else if (isValidUrl(processedMediaUrl) && processedMediaUrl !== "/defaultimage.png") {
+      finalMediaType = "external"
+    }
+  }
+  // Rule C: If neither is valid → fallback
+  else {
+    processedMediaUrl = "/defaultimage.png"
+    finalMediaType = "image"
+  }
 
   // Get raw values first to check if they actually exist
   const rawCtaText =
@@ -364,12 +395,6 @@ function mapMessageToTemplate(row) {
   // Track if we have actual data (not defaults) for the button logic
   const hasActualCtaData = Boolean(rawCtaText || rawCtaLink)
   
-  // Determine the final media type
-  const finalMediaType = getMediaType(mediaType)
-  
-  // Convert Google Drive URLs to appropriate URLs based on media type
-  const processedMediaUrl = convertGoogleDriveUrl(mediaUrl, finalMediaType)
-  
   console.log(
     'Mapped values:',
     JSON.stringify(
@@ -400,61 +425,74 @@ function mapMessageToTemplate(row) {
  * @returns {string} Converted URL
  */
 function convertGoogleDriveUrl(url, mediaType = 'image') {
-  if (!url || url === '/chimp.png') return '/chimp.png'
+  // 1. New Check/Fix - Handle 'Pending' values
+  if (!url || url.toLowerCase() === 'pending' || url === '/Pending') {
+    return '/defaultimage.png'
+  }
+  
+  // 2. New Debugging Log - Start
+  console.log('--- DEBUG START ---')
+  console.log('SheetService: Input URL:', url)
+
+  if (url === '/defaultimage.png') return '/defaultimage.png'
   const trimmedUrl = url.trim()
-  if (trimmedUrl === '') return '/chimp.png'
+  if (trimmedUrl === '') {
+    console.log('SheetService: Final Processed URL:', '/defaultimage.png')
+    console.log('--- DEBUG END ---')
+    return '/defaultimage.png'
+  }
 
-  // Allow data URIs, absolute URLs, and already-prefixed paths to pass through
+  let processedUrl = null
+
+  // Handle data URIs first (special case)
   if (/^data:/i.test(trimmedUrl)) {
-    return trimmedUrl
+    processedUrl = trimmedUrl
   }
-
-  if (trimmedUrl.startsWith('/')) {
-    return trimmedUrl
-  }
-
-  // Handle relative asset paths inside the public directory
-  if (!/^[a-zA-Z]+:\/\//.test(trimmedUrl)) {
-    return `/${trimmedUrl.replace(/^\/+/, '')}`
-  }
-
-  // If it's already a direct image URL, return as-is
-  if (trimmedUrl.match(/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|mov|ogg)$/i)) {
-    return trimmedUrl
-  }
-  
-  // If it's a YouTube URL, return as-is
-  if (trimmedUrl.includes('youtube.com') || trimmedUrl.includes('youtu.be')) {
-    return trimmedUrl
-  }
-  
-  // Convert Google Drive file view URL
-  if (trimmedUrl.includes('drive.google.com/file/d/')) {
-    const fileIdMatch = trimmedUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/)
-    if (fileIdMatch) {
+  // Check and convert Google Drive Links to the public download/preview format
+  else if (trimmedUrl.includes('drive.google.com/file/d/')) {
+    // This regex looks for the File ID between /d/ and /view or another slash
+    const fileIdMatch = trimmedUrl.match(/\/d\/([a-zA-Z0-9_-]+)/)
+    
+    if (fileIdMatch && fileIdMatch[1]) {
       const fileId = fileIdMatch[1]
-      
-      // For both videos and images, use the preview endpoint (more reliable)
-      return `https://drive.google.com/file/d/${fileId}/preview`
+      // This is the correct public URL format for embedded images/previews
+      processedUrl = `https://drive.google.com/uc?export=view&id=${fileId}`
+    } else {
+      // Fallback for an invalid Google Drive URL structure
+      processedUrl = '/defaultimage.png'
     }
   }
-  
-  // If it's already a direct Google Drive image URL, return as-is
-  if (trimmedUrl.includes('uc?export=view')) {
-    return trimmedUrl
+  // If it's already a direct Google Drive image URL (uc?export=view), return as-is
+  else if (trimmedUrl.includes('uc?export=view')) {
+    processedUrl = trimmedUrl
+  }
+  // Check and convert YouTube Links
+  else if (trimmedUrl.includes('youtube.com') || trimmedUrl.includes('youtu.be')) {
+    // If it's YouTube, we typically leave it as is or convert to a standard embed URL if needed
+    // Assuming your existing logic handles conversion to /embed if necessary, otherwise leave as trimmedUrl
+    processedUrl = trimmedUrl
+  }
+  // Check and convert relative paths (e.g. for default image)
+  else if (trimmedUrl.startsWith('/') || trimmedUrl.startsWith('./')) {
+    processedUrl = trimmedUrl
+  }
+  // Handle any other direct file URL, ensuring protocol is present
+  else if (trimmedUrl.startsWith('http')) {
+    processedUrl = trimmedUrl
+  }
+  // Final fallback if the URL couldn't be processed
+  else {
+    processedUrl = '/defaultimage.png'
   }
   
-  // If it's already a Google Drive preview URL, return as-is
-  if (trimmedUrl.includes('drive.google.com/file/d/') && trimmedUrl.includes('/preview')) {
-    return trimmedUrl
+  // Fallback to defaultimage.png if the URL is clearly invalid
+  if (!processedUrl) {
+    processedUrl = '/defaultimage.png'
   }
-  
-  // If it looks like a valid HTTP/HTTPS URL, return it as-is (don't fallback to chimp.png)
-  // This handles other image hosting services, CDNs, etc.
-  if (/^https?:\/\//i.test(trimmedUrl)) {
-    return trimmedUrl
-  }
-  
-  // Only fallback to chimp.png if the URL is clearly invalid
-  return '/chimp.png'
+
+  // 2. New Debugging Log - End
+  console.log('SheetService: Final Processed URL:', processedUrl)
+  console.log('--- DEBUG END ---')
+
+  return processedUrl
 }

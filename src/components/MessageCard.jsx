@@ -124,14 +124,46 @@ export default function MessageCard({
     console.log('Rendering background media:', { mediaUrl, mediaType, title });
     
     if (!mediaUrl || mediaUrl.trim() === '') {
-      console.log('No media URL, using fallback image: /chimp.png');
+      console.log('No media URL, using fallback image: /defaultimage.png');
       return (
         <img
-          src="/chimp.png"
+          src="/defaultimage.png"
           alt={title}
           className="absolute inset-0 w-full h-full object-cover"
           onLoad={handleMediaLoad}
           onError={handleMediaError}
+        />
+      )
+    }
+
+    // Handle external media type (iframe)
+    if (mediaType === "external") {
+      // If external link failed, fallback to default image
+      if (mediaLoadError) {
+        console.log('External link failed → Using defaultimage.png');
+        return (
+          <img
+            src="/defaultimage.png"
+            alt={title}
+            className="absolute inset-0 w-full h-full object-cover"
+            onLoad={handleMediaLoad}
+            onError={handleMediaError}
+          />
+        )
+      }
+      
+      return (
+        <iframe
+          src={mediaUrl}
+          className="absolute inset-0 w-full h-full object-cover"
+          sandbox="allow-same-origin allow-scripts"
+          loading="lazy"
+          onLoad={handleMediaLoad}
+          onError={() => {
+            console.log('External link failed → Using defaultimage.png');
+            // Fallback to default image on error
+            setMediaLoadError(true);
+          }}
         />
       )
     }
@@ -212,7 +244,7 @@ export default function MessageCard({
         onError={(e) => {
           console.log('Image failed, trying fallback:', mediaUrl);
           // Try fallback image if main image fails
-          e.target.src = '/chimp.png';
+          e.target.src = '/defaultimage.png';
           handleMediaLoad();
         }}
       />

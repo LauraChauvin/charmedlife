@@ -106,7 +106,7 @@ export default function LandingPage() {
         const fallbackMessage = token ? {
           title: 'Charm Not Yet Active',
           message: '✨ This charm is not yet active. Please contact support if you believe this is an error.',
-          mediaUrl: '/chimp.png',
+          mediaUrl: '/defaultimage.png',
           mediaType: 'image',
           ctaText: 'Contact Support',
           ctaLink: 'https://www.FootForwardFund.org',
