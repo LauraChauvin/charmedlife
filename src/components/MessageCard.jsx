@@ -122,9 +122,8 @@ export default function MessageCard({
   // Simplified media rendering - go back to reliable approach
   const renderBackgroundMedia = () => {
     console.log('Rendering background media:', { mediaUrl, mediaType, title });
-    
+
     if (!mediaUrl || mediaUrl.trim() === '') {
-      console.log('No media URL, using fallback image: /defaultimage.png');
       return (
         <img
           src="/defaultimage.png"
@@ -133,122 +132,90 @@ export default function MessageCard({
           onLoad={handleMediaLoad}
           onError={handleMediaError}
         />
-      )
+      );
     }
 
-    // Handle external media type (iframe)
-    if (mediaType === "external") {
-      // If external link failed, fallback to default image
-      if (mediaLoadError) {
-        console.log('External link failed → Using defaultimage.png');
+    // If URL ends in a real image extension → render as image
+    if (mediaUrl.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+      return (
+        <img
+          src={mediaUrl}
+          alt={title}
+          className="absolute inset-0 w-full h-full object-cover"
+          onLoad={handleMediaLoad}
+          onError={handleMediaError}
+        />
+      );
+    }
+
+    // YouTube embeds
+    if (mediaUrl.includes("youtube.com") || mediaUrl.includes("youtu.be")) {
+      let videoId = "";
+      if (mediaUrl.includes("/shorts/")) {
+        videoId = mediaUrl.split("/shorts/")[1].split("?")[0];
+      } else if (mediaUrl.includes("v=")) {
+        videoId = new URL(mediaUrl).searchParams.get("v");
+      } else if (mediaUrl.includes("youtu.be/")) {
+        videoId = mediaUrl.split("youtu.be/")[1].split("?")[0];
+      }
+
+      if (videoId) {
         return (
-          <img
-            src="/defaultimage.png"
-            alt={title}
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`}
             className="absolute inset-0 w-full h-full object-cover"
             onLoad={handleMediaLoad}
             onError={handleMediaError}
+            allow="autoplay; fullscreen"
+            allowFullScreen
           />
-        )
+        );
       }
-      
-      return (
-        <iframe
-          src={mediaUrl}
-          className="absolute inset-0 w-full h-full object-cover"
-          sandbox="allow-same-origin allow-scripts"
-          loading="lazy"
-          onLoad={handleMediaLoad}
-          onError={() => {
-            console.log('External link failed → Using defaultimage.png');
-            // Fallback to default image on error
-            setMediaLoadError(true);
-          }}
-        />
-      )
     }
 
-    // Check if it's a video URL
-    const isVideo = isVideoUrl(mediaUrl)
-
-    if (isVideo) {
-      // Handle video URLs with iframe
-      if (mediaUrl.includes('youtube.com') || mediaUrl.includes('youtu.be')) {
-        let videoId = ""
-        if (mediaUrl.includes("/shorts/")) {
-          videoId = mediaUrl.split("/shorts/")[1].split("?")[0]
-        } else if (mediaUrl.includes("v=")) {
-          videoId = new URL(mediaUrl).searchParams.get("v")
-        } else if (mediaUrl.includes("youtu.be/")) {
-          videoId = mediaUrl.split("youtu.be/")[1].split("?")[0]
-        }
-        
-        if (videoId) {
-          return (
-            <iframe
-              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`}
-              frameBorder="0"
-              allow="autoplay; fullscreen"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full object-cover"
-              onLoad={handleMediaLoad}
-              onError={handleMediaError}
-            />
-          )
-        }
-      }
-      
-      // Handle Google Drive videos
-      if (mediaUrl.includes("drive.google.com")) {
-        const fileId = mediaUrl.match(/[-\w]{25,}/)?.[0]
-        if (fileId) {
-          return (
-            <iframe
-              src={`https://drive.google.com/file/d/${fileId}/preview`}
-              frameBorder="0"
-              allow="autoplay; fullscreen"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full object-cover"
-              onLoad={handleMediaLoad}
-              onError={handleMediaError}
-            />
-          )
-        }
-      }
-      
-      // Handle direct video files
-      if (mediaUrl.match(/\.(mp4|mov|avi|webm|ogg)$/i)) {
+    // Drive preview embed
+    if (mediaUrl.includes("drive.google.com")) {
+      const fileId = mediaUrl.match(/[-\w]{25,}/)?.[0];
+      if (fileId) {
         return (
-          <video
-            src={mediaUrl}
-            autoPlay
-            muted
-            loop
-            playsInline
+          <iframe
+            src={`https://drive.google.com/file/d/${fileId}/preview`}
             className="absolute inset-0 w-full h-full object-cover"
-            onLoadedData={handleMediaLoad}
+            onLoad={handleMediaLoad}
             onError={handleMediaError}
+            allow="autoplay; fullscreen"
+            allowFullScreen
           />
-        )
+        );
       }
     }
 
-    // Default to image rendering for everything else
-    console.log('Rendering as image:', mediaUrl);
+    // Direct video file
+    if (mediaUrl.match(/\.(mp4|mov|avi|webm|ogg)$/i)) {
+      return (
+        <video
+          src={mediaUrl}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          onLoadedData={handleMediaLoad}
+          onError={handleMediaError}
+        />
+      );
+    }
+
+    // Fallback: render as image
     return (
       <img
         src={mediaUrl}
         alt={title}
         className="absolute inset-0 w-full h-full object-cover"
         onLoad={handleMediaLoad}
-        onError={(e) => {
-          console.log('Image failed, trying fallback:', mediaUrl);
-          // Try fallback image if main image fails
-          e.target.src = '/defaultimage.png';
-          handleMediaLoad();
-        }}
+        onError={handleMediaError}
       />
-    )
+    );
   }
 
   return (
