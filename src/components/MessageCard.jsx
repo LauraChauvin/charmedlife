@@ -12,6 +12,8 @@ export default function MessageCard({
   accent,
   link, // New prop for optional link URL from Google Sheet
   hasActualCtaData = false, // Flag to indicate if we have real CTA data (not defaults)
+  type, // Type field from Google Sheet
+  externalLink, // Raw external link value from Google Sheet
 }) {
   // Debug logging (reduced)
   // console.log('MessageCard props:', { title, message, mediaUrl, mediaType, ctaText, link });
@@ -30,6 +32,7 @@ export default function MessageCard({
     return (ctaText && ctaText.toLowerCase().includes('donate')) || 
            (link && link.includes('zeffy.com'))
   }
+
 
   useEffect(() => {
     setIsShareSupported('share' in navigator)
@@ -288,34 +291,25 @@ export default function MessageCard({
           </p>
         </div>
         
-        {/* Single CTA Button - Show donate button for donation messages, regular CTA for others */}
+        {/* CTA Button - Only shows when external link exists or donation day */}
         <div className="mt-8">
           {isDonateDay() || isDonationMessage() ? (
             <button
               onClick={handleDonate}
-              className="inline-flex items-center bg-green-500 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-green-600 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
+              className="inline-flex items-center bg-white/30 backdrop-blur-md border border-white/40 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-white/40 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
             >
               Donate Now
             </button>
-          ) : link && link.trim() !== '' ? (
+          ) : externalLink && externalLink.trim() !== '' ? (
             <a
-              href={link}
+              href={externalLink}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center bg-white/30 backdrop-blur-md border border-white/40 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-white/40 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
             >
               Learn More
             </a>
-          ) : (
-            <a
-              href="https://www.footforwardfund.org/about.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center bg-green-500 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-green-600 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
-            >
-              Get to Know Her Best Foot Forward
-            </a>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

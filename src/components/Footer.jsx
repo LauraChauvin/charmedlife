@@ -31,7 +31,7 @@ export function Footer() {
         {/* Dynamic Button */}
         <div className="text-center mb-12">
           <button
-            onClick={() => window.open('https://www.footforwardfund.org', '_blank', 'noopener,noreferrer')}
+            onClick={() => window.open('https://www.footforwardfund.org/about.html', '_blank', 'noopener,noreferrer')}
             className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white py-4 px-8 rounded-2xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-500/20 flex items-center justify-center mx-auto font-glacial"
           >
             {buttonText}

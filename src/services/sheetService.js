@@ -365,6 +365,9 @@ function mapMessageToTemplate(row) {
     normalizeString(row['Button Text']) ||
     ''
 
+  // Get raw external link from the specific column
+  const rawExternalLink = normalizeString(row['External Link (if applicable)']) || ''
+  
   const rawCtaLink =
     normalizeString(row['External Link (if applicable)']) ||
     normalizeString(row['External Link']) ||
@@ -395,10 +398,13 @@ function mapMessageToTemplate(row) {
   // Track if we have actual data (not defaults) for the button logic
   const hasActualCtaData = Boolean(rawCtaText || rawCtaLink)
   
+  // Extract Type field
+  const type = normalizeString(row['Type']) || ''
+  
   console.log(
     'Mapped values:',
     JSON.stringify(
-      { title, message, mediaUrl: processedMediaUrl, mediaType: finalMediaType, ctaText, ctaLink, givingMessage },
+      { title, message, mediaUrl: processedMediaUrl, mediaType: finalMediaType, ctaText, ctaLink, givingMessage, type },
       null,
       2
     )
@@ -414,7 +420,9 @@ function mapMessageToTemplate(row) {
     ctaLink: ctaLink,
     link: ctaLink, // Use ctaLink as the main link for now
     hasActualCtaData: hasActualCtaData, // Flag to indicate if we have real CTA data (not defaults)
-    accent: 'Daily Inspiration'
+    accent: 'Daily Inspiration',
+    type: type, // Add Type field for CTA logic
+    externalLink: rawExternalLink // Raw external link value from "External Link (if applicable)" column
   }
 }
 
