@@ -1,5 +1,5 @@
 // Local CSV data located in the public folder
-const SHEET_FILENAME = 'Bracelet Content - Sheet1.csv'
+const SHEET_FILENAME = 'Bracelet_Content_Local.csv'
 const ABOUT_PAGE_URL = 'https://www.footforwardfund.org/about.html'
 const GIVING_PAGE_URL = 'https://www.footforwardfund.org/give.html'
 const LEARN_MORE_TEXT = 'Learn More'
@@ -19,6 +19,23 @@ function getEasternNow() {
 function normalizeString(value) {
   if (typeof value !== 'string') return ''
   return value.trim().replace(/\\+$/, '')
+}
+
+/**
+ * Convert Windows-style file paths to web paths
+ * @param {string} path Path that may contain backslashes
+ * @returns {string} Web-safe path with forward slashes
+ */
+function normalizePathToWeb(path) {
+  if (!path || typeof path !== 'string') return path
+  // Convert Windows-style backslashes to forward slashes
+  // Example: photos\001_image.jpg → /photos/001_image.jpg
+  let normalized = path.replace(/\\/g, '/')
+  // Ensure it starts with / for absolute paths in public folder
+  if (normalized && !normalized.startsWith('/') && !normalized.startsWith('http')) {
+    normalized = '/' + normalized
+  }
+  return normalized
 }
 
 function isGivingMessage(row) {
@@ -244,10 +261,23 @@ export async function getDailyMessage() {
     }
     
     // 1. Try to match today's exact date in US EST
-    const todayMessage = validMessages.find(row => isToday(row.Date))
+    const todayMessage = validMessages.find((row, index) => {
+      if (isToday(row.Date)) {
+        // 🔧 DIAGNOSTIC LOGS - Today's Message Selection
+        console.log("DAY OF YEAR:", getDayOfYear())
+        console.log("TOTAL ROWS:", validMessages.length)
+        console.log("SELECTED INDEX (in validMessages):", index)
+        console.log("SELECTED ROW:", row)
+        console.log("RAW IMAGE FIELD:", row["Image or Video"])
+        return true
+      }
+      return false
+    })
     if (todayMessage) {
       console.log('Found message for today:', todayMessage['Title/Headline (if applicable)'])
-      return mapMessageToTemplate(todayMessage)
+      const mappedToday = mapMessageToTemplate(todayMessage)
+      console.log("FINAL MEDIA URL:", mappedToday.mediaUrl)
+      return mappedToday
     }
     
     const easternNow = getEasternNow()
@@ -260,8 +290,21 @@ export async function getDailyMessage() {
       if (givingMessages.length > 0) {
         const givingIndex = dayOfYear % givingMessages.length
         const givingMessage = givingMessages[givingIndex]
+        
+        // 🔧 DIAGNOSTIC LOGS - Giving Message Selection
+        const originalIndex = validMessages.findIndex(msg => msg === givingMessage)
+        console.log("DAY OF YEAR:", dayOfYear)
+        console.log("TOTAL ROWS:", validMessages.length)
+        console.log("GIVING MESSAGES COUNT:", givingMessages.length)
+        console.log("SELECTED INDEX (in validMessages):", originalIndex)
+        console.log("SELECTED INDEX (in givingMessages):", givingIndex)
+        console.log("SELECTED ROW:", givingMessage)
+        console.log("RAW IMAGE FIELD:", givingMessage["Image or Video"])
+        
         console.log('Using giving message for day', dayOfMonth)
-        return mapMessageToTemplate(givingMessage)
+        const mappedGiving = mapMessageToTemplate(givingMessage)
+        console.log("FINAL MEDIA URL:", mappedGiving.mediaUrl)
+        return mappedGiving
       }
     }
 
@@ -269,8 +312,20 @@ export async function getDailyMessage() {
     const rotationIndex = dayOfYear % validMessages.length
     const rotatingMessage = validMessages[rotationIndex]
     
+    // 🔧 DIAGNOSTIC LOGS - Row Selection
+    console.log("DAY OF YEAR:", dayOfYear)
+    console.log("TOTAL ROWS:", validMessages.length)
+    console.log("SELECTED INDEX:", rotationIndex)
+    console.log("SELECTED ROW:", rotatingMessage)
+    console.log("RAW IMAGE FIELD:", rotatingMessage["Image or Video"])
+    
     console.log('Using rotating message for day', dayOfYear)
-    return mapMessageToTemplate(rotatingMessage)
+    const mappedMessage = mapMessageToTemplate(rotatingMessage)
+    
+    // 🔧 DIAGNOSTIC LOG - Final Media URL
+    console.log("FINAL MEDIA URL:", mappedMessage.mediaUrl)
+    
+    return mappedMessage
     
   } catch (error) {
     console.error('Error in getDailyMessage:', error)
@@ -316,8 +371,21 @@ function mapMessageToTemplate(row) {
   let rawMedia = row["Image or Video"]?.trim() || ""
   let external = row["External Link (if applicable)"]?.trim() || ""
 
+  // 🔧 DIAGNOSTIC LOG - Raw fields from row
+  console.log("RAW IMAGE FIELD:", rawMedia)
+  console.log("EXTERNAL LINK FIELD:", external)
+  console.log("ROW TYPE:", row['Type'])
+  console.log("ROW TITLE:", row['Title/Headline (if applicable)'])
+  console.log("ROW MESSAGE:", row['Body / Key Message (if applicable)'])
+
   // Detect if external link is a valid URL
   const isValidUrl = (url) => /^https?:\/\//i.test(url)
+
+  // Normalize Windows-style paths to web paths (photos\... → /photos/...)
+  if (rawMedia && !isValidUrl(rawMedia) && rawMedia.toLowerCase() !== "pending") {
+    rawMedia = normalizePathToWeb(rawMedia)
+    console.log("NORMALIZED PATH:", rawMedia)
+  }
 
   // Determine media URL and type
   let processedMediaUrl = ""
@@ -334,7 +402,7 @@ function mapMessageToTemplate(row) {
       // External link missing or invalid → fallback
       processedMediaUrl = "/defaultimage.png"
       finalMediaType = "image"
-      console.log("External link failed → Using defaultimage.png")
+      console.log("🛑 FALLBACK TRIGGERED: External link failed → Using defaultimage.png")
     }
   }
   // Rule A: If Image/Video is a real link, use it
@@ -351,10 +419,23 @@ function mapMessageToTemplate(row) {
       finalMediaType = "external"
     }
   }
+  // Rule B: If it's a local path (starts with /), use it directly
+  else if (rawMedia && rawMedia.startsWith('/')) {
+    processedMediaUrl = rawMedia
+    // Determine media type based on extension
+    if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(processedMediaUrl)) {
+      finalMediaType = "image"
+    } else if (/\.(mp4|mov|avi|webm|ogg)$/i.test(processedMediaUrl)) {
+      finalMediaType = "video"
+    } else {
+      finalMediaType = "image" // Default to image
+    }
+  }
   // Rule C: If neither is valid → fallback
   else {
     processedMediaUrl = "/defaultimage.png"
     finalMediaType = "image"
+    console.log("🛑 FALLBACK TRIGGERED: No valid media → Using defaultimage.png")
   }
 
   // Get raw values first to check if they actually exist
@@ -400,6 +481,12 @@ function mapMessageToTemplate(row) {
   
   // Extract Type field
   const type = normalizeString(row['Type']) || ''
+  
+  // 🔧 DIAGNOSTIC LOG - Final processed media URL
+  console.log("FINAL PROCESSED MEDIA URL:", processedMediaUrl)
+  const isLocalMedia = processedMediaUrl.startsWith('/') && !processedMediaUrl.startsWith('//')
+  const isExternalMedia = /^https?:\/\//i.test(processedMediaUrl)
+  console.log("MEDIA URL TYPE - Local:", isLocalMedia, "| External:", isExternalMedia)
   
   console.log(
     'Mapped values:',
@@ -468,6 +555,7 @@ function convertGoogleDriveUrl(url, mediaType = 'image') {
     } else {
       // Fallback for an invalid Google Drive URL structure
       processedUrl = '/defaultimage.png'
+      console.log("🛑 FALLBACK TRIGGERED: Invalid Google Drive URL structure → Using defaultimage.png")
     }
   }
   // If it's already a direct Google Drive image URL (uc?export=view), return as-is
@@ -491,15 +579,23 @@ function convertGoogleDriveUrl(url, mediaType = 'image') {
   // Final fallback if the URL couldn't be processed
   else {
     processedUrl = '/defaultimage.png'
+    console.log("🛑 FALLBACK TRIGGERED: URL couldn't be processed → Using defaultimage.png")
   }
   
   // Fallback to defaultimage.png if the URL is clearly invalid
   if (!processedUrl) {
     processedUrl = '/defaultimage.png'
+    console.log("🛑 FALLBACK TRIGGERED: Processed URL was null → Using defaultimage.png")
   }
 
   // 2. New Debugging Log - End
   console.log('SheetService: Final Processed URL:', processedUrl)
+  
+  // 🔧 DIAGNOSTIC LOG - Check if URL is local or external
+  const isLocalPath = processedUrl.startsWith('/') && !processedUrl.startsWith('//')
+  const isExternalUrl = /^https?:\/\//i.test(processedUrl)
+  console.log("URL TYPE - Local:", isLocalPath, "| External:", isExternalUrl)
+  
   console.log('--- DEBUG END ---')
 
   return processedUrl

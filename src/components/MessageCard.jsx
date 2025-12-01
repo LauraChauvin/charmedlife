@@ -42,6 +42,7 @@ export default function MessageCard({
   useEffect(() => {
     if (mediaUrl) {
       console.log('Media URL changed:', mediaUrl)
+      console.log("🔧 MESSAGECARD MEDIA URL:", mediaUrl)
       setIsMediaLoading(true)
       setMediaLoadError(false)
       
@@ -67,6 +68,7 @@ export default function MessageCard({
 
   const handleMediaError = (error) => {
     console.log('❌ Media failed to load:', mediaUrl, error)
+    console.log("🛑 MESSAGECARD MEDIA LOAD ERROR:", error)
     setIsMediaLoading(false)
     setMediaLoadError(true)
   }

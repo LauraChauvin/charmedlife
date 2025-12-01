@@ -112,3 +112,4 @@ Regarding the screenshot issue: This typically occurs when Google Drive images a
 To fix this, please ensure all Google Drive images are set to 'Anyone with the link can view' permissions. This will allow the system to display the actual images instead of previews."
 
 
+
