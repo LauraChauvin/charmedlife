@@ -116,10 +116,24 @@ function parseCsvLine(line) {
 export async function fetchSheetData(token) {
   try {
     const sheetUrl = getSheetUrl()
-    const response = await fetch(sheetUrl, {
-      cache: 'no-cache',
+    // Add cache-busting timestamp to ensure fresh data each time
+    // Use both timestamp and random value for maximum cache-busting
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(7)
+    const cacheBuster = `?t=${timestamp}&r=${random}`
+    const urlWithCacheBust = sheetUrl.includes('?') 
+      ? `${sheetUrl}&t=${timestamp}&r=${random}` 
+      : `${sheetUrl}${cacheBuster}`
+    
+    console.log('📥 Fetching CSV (cache-busted):', urlWithCacheBust)
+    
+    const response = await fetch(urlWithCacheBust, {
+      cache: 'no-store', // More aggressive cache bypass
       headers: {
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'If-Modified-Since': '0'
       }
     })
 
@@ -176,11 +190,45 @@ function isToday(dateStr) {
  * @returns {number} Day of year (1-365/366)
  */
 function getDayOfYear() {
+  // Get current date in Eastern Time as a proper date object
+  const now = new Date()
+  const easternStr = now.toLocaleString('en-US', { 
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+  
+  // Parse the Eastern time string to get year, month, day
+  const [datePart, timePart] = easternStr.split(', ')
+  const [month, day, year] = datePart.split('/').map(Number)
+  
+  // Create date objects for today and Jan 1 in Eastern time
+  const todayEastern = new Date(year, month - 1, day) // month is 0-indexed
+  const jan1Eastern = new Date(year, 0, 1)
+  
+  // Calculate day of year (1-based)
+  const diffTime = todayEastern.getTime() - jan1Eastern.getTime()
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  const dayOfYear = diffDays + 1
+  
+  // 🔧 DIAGNOSTIC LOG
   const easternTime = getEasternNow()
-  const start = new Date(easternTime.getFullYear(), 0, 0)
-  const diff = easternTime - start
-  const oneDay = 1000 * 60 * 60 * 24
-  return Math.floor(diff / oneDay)
+  console.log('📅 Day of Year Calculation:', {
+    easternDate: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`,
+    easternTime: easternTime.toISOString(),
+    jan1Eastern: jan1Eastern.toISOString(),
+    todayEastern: todayEastern.toISOString(),
+    dayOfYear: dayOfYear,
+    year: year,
+    month: month,
+    date: day
+  })
+  
+  return dayOfYear
 }
 
 /**
@@ -238,7 +286,18 @@ function getTokenFallbackMessage(token) {
  */
 export async function getDailyMessage() {
   try {
-    console.log('Fetching daily message from Google Sheets...')
+    const easternNow = getEasternNow()
+    const todayStr = easternNow.toISOString().split('T')[0]
+    const dayOfYear = getDayOfYear()
+    
+    console.log('🔄 Fetching daily message...', {
+      timestamp: new Date().toISOString(),
+      easternTime: easternNow.toISOString(),
+      today: todayStr,
+      dayOfYear: dayOfYear,
+      dateString: easternNow.toDateString()
+    })
+    
     const messages = await fetchSheetData()
     console.log('Found', messages.length, 'messages')
     
@@ -246,81 +305,41 @@ export async function getDailyMessage() {
       throw new Error('No messages found in spreadsheet')
     }
     
-    // Filter out messages without titles
-    const validMessages = messages.filter(msg => {
-      const title =
-        normalizeString(msg['Title/Headline (if applicable)']) ||
-        normalizeString(msg['Title / Quote']) ||
-        normalizeString(msg['Title']) ||
-        normalizeString(msg['Headline'])
-      return title !== ''
-    })
+    // DON'T filter by title - use ALL CSV rows to maintain 1:1 mapping
+    // CSV Row 1 = Header (ignored in messages array)
+    // CSV Row 2 = Day 1 (messages[0])
+    // CSV Row 3 = Day 2 (messages[1])
+    // CSV Row 101 = Day 100 (messages[99])
+    // Use ALL messages to preserve exact CSV row order
+    const allMessages = messages // Use all rows, don't filter
     
-    if (validMessages.length === 0) {
-      throw new Error('No valid messages found')
+    if (allMessages.length === 0) {
+      throw new Error('No messages found in CSV')
     }
     
-    // 1. Try to match today's exact date in US EST
-    const todayMessage = validMessages.find((row, index) => {
-      if (isToday(row.Date)) {
-        // 🔧 DIAGNOSTIC LOGS - Today's Message Selection
-        console.log("DAY OF YEAR:", getDayOfYear())
-        console.log("TOTAL ROWS:", validMessages.length)
-        console.log("SELECTED INDEX (in validMessages):", index)
-        console.log("SELECTED ROW:", row)
-        console.log("RAW IMAGE FIELD:", row["Image or Video"])
-        return true
-      }
-      return false
-    })
-    if (todayMessage) {
-      console.log('Found message for today:', todayMessage['Title/Headline (if applicable)'])
-      const mappedToday = mapMessageToTemplate(todayMessage)
-      console.log("FINAL MEDIA URL:", mappedToday.mediaUrl)
-      return mappedToday
-    }
-    
-    const easternNow = getEasternNow()
-    const dayOfMonth = easternNow.getDate()
-    const dayOfYear = getDayOfYear()
-
-    // 2. On giving days (2nd and 16th), prioritize giving-focused messages
-    if ([2, 16].includes(dayOfMonth)) {
-      const givingMessages = validMessages.filter(isGivingMessage)
-      if (givingMessages.length > 0) {
-        const givingIndex = dayOfYear % givingMessages.length
-        const givingMessage = givingMessages[givingIndex]
-        
-        // 🔧 DIAGNOSTIC LOGS - Giving Message Selection
-        const originalIndex = validMessages.findIndex(msg => msg === givingMessage)
-        console.log("DAY OF YEAR:", dayOfYear)
-        console.log("TOTAL ROWS:", validMessages.length)
-        console.log("GIVING MESSAGES COUNT:", givingMessages.length)
-        console.log("SELECTED INDEX (in validMessages):", originalIndex)
-        console.log("SELECTED INDEX (in givingMessages):", givingIndex)
-        console.log("SELECTED ROW:", givingMessage)
-        console.log("RAW IMAGE FIELD:", givingMessage["Image or Video"])
-        
-        console.log('Using giving message for day', dayOfMonth)
-        const mappedGiving = mapMessageToTemplate(givingMessage)
-        console.log("FINAL MEDIA URL:", mappedGiving.mediaUrl)
-        return mappedGiving
-      }
-    }
-
-    // 3. Otherwise, rotate based on day of year
-    const rotationIndex = dayOfYear % validMessages.length
-    const rotatingMessage = validMessages[rotationIndex]
+    // FOLLOW CSV EXACTLY: Row order = Day order
+    // Day N = CSV Row (N+1) = messages array index (N-1)
+    // Wrap around if day exceeds total rows
+    const rotationIndex = (dayOfYear - 1) % allMessages.length
+    const selectedMessage = allMessages[rotationIndex]
     
     // 🔧 DIAGNOSTIC LOGS - Row Selection
-    console.log("DAY OF YEAR:", dayOfYear)
-    console.log("TOTAL ROWS:", validMessages.length)
-    console.log("SELECTED INDEX:", rotationIndex)
-    console.log("SELECTED ROW:", rotatingMessage)
-    console.log("RAW IMAGE FIELD:", rotatingMessage["Image or Video"])
+    console.log("🔄 FOLLOWING CSV ROW ORDER:", {
+      dayOfYear: dayOfYear,
+      csvRowNumber: dayOfYear + 1, // CSV row number (row 1 = header, row 2 = day 1)
+      arrayIndex: rotationIndex,
+      totalMessages: allMessages.length,
+      actualCSVRow: rotationIndex + 2, // +2 because row 1 is header, and array is 0-indexed
+      messageType: selectedMessage['Type'],
+      messageTitle: selectedMessage['Title/Headline (if applicable)'],
+      messageBody: selectedMessage['Body / Key Message (if applicable)'],
+      imageOrVideo: selectedMessage["Image or Video"],
+      isYouTube: selectedMessage["Image or Video"]?.includes('youtube.com') || selectedMessage["Image or Video"]?.includes('youtu.be')
+    })
     
-    console.log('Using rotating message for day', dayOfYear)
-    const mappedMessage = mapMessageToTemplate(rotatingMessage)
+    const actualCSVRow = rotationIndex + 2 // Row 1 is header, array is 0-indexed
+    console.log(`✅ Day ${dayOfYear}: Using CSV row ${actualCSVRow} (after wrap-around, array index ${rotationIndex})`)
+    const mappedMessage = mapMessageToTemplate(selectedMessage)
     
     // 🔧 DIAGNOSTIC LOG - Final Media URL
     console.log("FINAL MEDIA URL:", mappedMessage.mediaUrl)

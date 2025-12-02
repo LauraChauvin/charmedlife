@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import MessageCard from './MessageCard'
 import Footer from './Footer'
@@ -31,8 +31,14 @@ export default function LandingPage() {
     }
   }, [token])
 
-  // Refresh function to test live updates
-  const refreshMessage = async () => {
+  // Track the current day to auto-refresh when day changes
+  const [currentDay, setCurrentDay] = useState(() => {
+    const now = new Date()
+    return new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' })).toDateString()
+  })
+
+  // Refresh function to test live updates - wrapped in useCallback to avoid dependency issues
+  const refreshMessage = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -66,13 +72,85 @@ export default function LandingPage() {
       setError('Unable to refresh message. Please try again.')
       setLoading(false)
     }
-  }
+  }, [token])
+
+  // Check if day has changed and refresh if needed - optimized for midnight detection
+  useEffect(() => {
+    const checkDayChange = async () => {
+      const now = new Date()
+      const easternNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }))
+      const today = easternNow.toDateString()
+      const todayISO = easternNow.toISOString().split('T')[0]
+      const hours = easternNow.getHours()
+      const minutes = easternNow.getMinutes()
+      const seconds = easternNow.getSeconds()
+      
+      // Check if we're near midnight (within 5 minutes before or after)
+      const isNearMidnight = (hours === 23 && minutes >= 55) || (hours === 0 && minutes <= 5)
+      
+      console.log('⏰ Day check:', {
+        currentDay,
+        today,
+        todayISO,
+        changed: today !== currentDay,
+        easternTime: easternNow.toISOString(),
+        time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
+        nearMidnight: isNearMidnight
+      })
+      
+      if (today !== currentDay) {
+        console.log('🔄 DAY CHANGED AT MIDNIGHT! Refreshing message...', { 
+          oldDay: currentDay, 
+          newDay: today,
+          oldDayISO: currentDay,
+          newDayISO: todayISO,
+          time: `${hours}:${minutes}:${seconds}`
+        })
+        setCurrentDay(today)
+        // Force immediate refresh
+        await refreshMessage()
+      }
+    }
+
+    // Check immediately
+    checkDayChange()
+
+    // Check more frequently near midnight, less frequently during day
+    // Near midnight (11:55 PM - 12:05 AM): check every 10 seconds
+    // During day: check every minute
+    const getCheckInterval = () => {
+      const now = new Date()
+      const easternNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }))
+      const hours = easternNow.getHours()
+      const minutes = easternNow.getMinutes()
+      const isNearMidnight = (hours === 23 && minutes >= 55) || (hours === 0 && minutes <= 5)
+      return isNearMidnight ? 10000 : 60000 // 10 seconds near midnight, 1 minute otherwise
+    }
+
+    // Set up interval with dynamic checking
+    let interval = setInterval(() => {
+      checkDayChange()
+      // Recalculate interval every hour
+      clearInterval(interval)
+      const newInterval = getCheckInterval()
+      interval = setInterval(checkDayChange, newInterval)
+    }, getCheckInterval())
+    
+    return () => clearInterval(interval)
+  }, [currentDay, token, refreshMessage])
 
   useEffect(() => {
     const loadMessage = async () => {
       try {
         setLoading(true)
         setError(null)
+        
+        // Force cache clear on every load
+        console.log('🔄 Loading message (forced refresh)...', {
+          timestamp: new Date().toISOString(),
+          token: token,
+          currentDay: currentDay
+        })
         
         let message: DailyMessage
         
@@ -83,6 +161,11 @@ export default function LandingPage() {
           // Fetch today's message (fallback for no token)
           message = await getDailyMessage()
         }
+        
+        console.log('✅ Message loaded:', {
+          title: message.title,
+          timestamp: new Date().toISOString()
+        })
         
         setDailyMessage(message)
         setLastUpdated(new Date())
@@ -99,7 +182,7 @@ export default function LandingPage() {
           }))
         }
       } catch (err) {
-        console.error('Error loading message:', err)
+        console.error('❌ Error loading message:', err)
         setError('Unable to load message from Google Sheets. Please check your internet connection and try again later.')
         
         // Fallback message if sheet loading fails
@@ -129,8 +212,13 @@ export default function LandingPage() {
       }
     }
 
-    loadMessage()
-  }, [token])
+    // Small delay to ensure state is ready, then load
+    const timeoutId = setTimeout(() => {
+      loadMessage()
+    }, 100)
+    
+    return () => clearTimeout(timeoutId)
+  }, [token, currentDay]) // Add currentDay as dependency so it refreshes when day changes
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-50 safe-area-inset bg-white">
