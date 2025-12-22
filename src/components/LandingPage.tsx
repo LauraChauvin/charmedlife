@@ -14,6 +14,8 @@ interface DailyMessage {
   ctaLink: string
   link: string
   hasActualCtaData?: boolean
+  externalLink?: string
+  type?: string
   token?: string
 }
 
@@ -299,6 +301,8 @@ export default function LandingPage() {
               ctaLink={dailyMessage.ctaLink}
               link={dailyMessage.link}
               hasActualCtaData={dailyMessage.hasActualCtaData}
+              externalLink={dailyMessage.externalLink}
+              type={dailyMessage.type}
               token={token} 
             />}
           </div>
@@ -312,6 +316,8 @@ export default function LandingPage() {
             ctaLink={dailyMessage.ctaLink}
             link={dailyMessage.link}
             hasActualCtaData={dailyMessage.hasActualCtaData}
+            externalLink={dailyMessage.externalLink}
+            type={dailyMessage.type}
             token={token} 
           />
         )}

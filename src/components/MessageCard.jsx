@@ -20,6 +20,9 @@ export default function MessageCard({
   const [isShareSupported, setIsShareSupported] = useState(false)
   const [isMediaLoading, setIsMediaLoading] = useState(true)
   const [mediaLoadError, setMediaLoadError] = useState(false)
+  
+  // Check if media has embedded text (to hide redundant text overlay)
+  const hasEmbeddedText = type && type.toLowerCase().includes('text embedded')
 
   // Calendar-based logic for donate days
   const isDonateDay = () => {
@@ -261,8 +264,10 @@ export default function MessageCard({
         </div>
       )}
       
-      {/* Enhanced gradient overlay for readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70 z-10"></div>
+      {/* Enhanced gradient overlay for readability - hide if media has embedded text */}
+      {!hasEmbeddedText && (
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70 z-10"></div>
+      )}
       
       {/* Share Button - Top Right */}
       <button
@@ -275,26 +280,28 @@ export default function MessageCard({
         </svg>
       </button>
       
-      {/* Enhanced overlay content with animations */}
+      {/* Enhanced overlay content with animations - hide text if media has embedded text */}
       <div className="relative z-20 flex flex-col items-center justify-center h-full px-6 text-center">
-        <div className="bg-black/20 rounded-2xl p-6 sm:p-8 max-w-4xl">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white drop-shadow-lg animate-fadeInUp">
-            {title.includes('Women We Love:') ? (
-              <>
-                Women We Love:<br />
-                {title.replace('Women We Love: ', '')}
-              </>
-            ) : (
-              title
-            )}
-          </h2>
-          <p className="mt-4 text-lg sm:text-xl text-white/95 leading-relaxed max-w-lg animate-fadeInUp delay-200">
-            {message}
-          </p>
-        </div>
+        {!hasEmbeddedText && (
+          <div className="bg-black/20 rounded-2xl p-6 sm:p-8 max-w-4xl">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white drop-shadow-lg animate-fadeInUp">
+              {title.includes('Women We Love:') ? (
+                <>
+                  Women We Love:<br />
+                  {title.replace('Women We Love: ', '')}
+                </>
+              ) : (
+                title
+              )}
+            </h2>
+            <p className="mt-4 text-lg sm:text-xl text-white/95 leading-relaxed max-w-lg animate-fadeInUp delay-200">
+              {message}
+            </p>
+          </div>
+        )}
         
         {/* CTA Button - Only shows when external link exists or donation day */}
-        <div className="mt-8">
+        <div className={hasEmbeddedText ? "mt-auto mb-8" : "mt-8"}>
           {isDonateDay() || isDonationMessage() ? (
             <button
               onClick={handleDonate}
@@ -302,14 +309,14 @@ export default function MessageCard({
             >
               Donate Now
             </button>
-          ) : externalLink && externalLink.trim() !== '' ? (
+          ) : hasActualCtaData || (externalLink && externalLink.trim() !== '') || (link && link.trim() !== '' && link !== 'https://www.footforwardfund.org/about.html' && link !== 'https://www.footforwardfund.org/give.html') || (ctaLink && ctaLink.trim() !== '' && ctaLink !== 'https://www.footforwardfund.org/about.html' && ctaLink !== 'https://www.footforwardfund.org/give.html') ? (
             <a
-              href={externalLink}
+              href={externalLink || link || ctaLink}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center bg-white/30 backdrop-blur-md border border-white/40 text-white font-semibold rounded-2xl py-3 px-8 hover:scale-105 hover:bg-white/40 transition-all duration-300 animate-fadeInUp delay-400 z-30 relative"
             >
-              Learn More
+              {ctaText || 'Read More'}
             </a>
           ) : null}
         </div>
